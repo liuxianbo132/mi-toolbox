@@ -1,0 +1,54 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <view class="app-title">小咪工具箱</view>
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="row"><text class="label">昵称</text><text>{{user.name || '微信用户'}}</text></view>
+    <view class="row" wx:if="{{household}}">
+      <text class="label">家庭</text><text>{{household.name}}</text>
+    </view>
+    <view class="row" wx:if="{{household}}">
+      <text class="label">邀请码</text>
+      <text class="code" bindtap="copyInviteCode">{{household.invite_code}}（点按复制）</text>
+    </view>
+    <view class="row" wx:if="{{!household}}">
+      <text class="label">家庭</text><text>未加入，请到「临期看板」创建</text>
+    </view>
+  </view>
+
+  <!-- 成员管理（ruling 前端清单 #5）：member 退出家庭 / owner 移除成员，owner 不显示退出入口 -->
+  <view class="card" wx:if="{{household}}">
+    <view class="card-title">家庭成员（{{members.length}}）</view>
+    <view class="member-list">
+      <view wx:for="{{members}}" wx:for-item="m" wx:key="id" class="member-row">
+        <view class="member-info">
+          <view class="member-name">
+            {{m.nameText}}
+            <text wx:if="{{m.isSelf}}" class="self-tag">我</text>
+          </view>
+          <view class="member-meta">{{m.roleLabel}}{{m.joinedText ? ' · ' + m.joinedText + ' 加入' : ''}}</view>
+        </view>
+        <view class="member-actions">
+          <button wx:if="{{m.isSelf || isOwner}}" size="mini" class="btn-ghost" data-id="{{m.id}}" data-name="{{m.nameText}}" catchtap="goAllergy">过敏</button>
+          <button wx:if="{{m.canRemove}}" size="mini" class="btn-warn" disabled="{{memberBusy}}" data-id="{{m.id}}" bindtap="onRemoveMember">移除</button>
+          <button wx:if="{{m.canLeave}}" size="mini" class="btn-danger" disabled="{{memberBusy}}" bindtap="onLeaveHousehold">退出家庭</button>
+        </view>
+      </view>
+      <view wx:if="{{members.length === 0}}" class="member-empty">暂无成员数据</view>
+    </view>
+  </view>
+
+  <view class="card entry-row" bindtap="gorecords">
+    <text>操作记录</text>
+    <text class="entry-arrow">›</text>
+  </view>
+
+  <view class="card">
+    <button class="btn-danger" bindtap="onSignOut">退出登录</button>
+  </view>
+</view>

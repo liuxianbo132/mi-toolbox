@@ -1,0 +1,114 @@
+/* 用药 tab：时间线与计划列表；公共类已收编至 app.wxss */
+
+.sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.sec-head .card-title {
+  margin-bottom: 0;
+}
+
+.hint-sm {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  padding: 12rpx 0;
+  text-align: center;
+}
+
+.dose-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.dose-row:first-child {
+  border-top: none;
+}
+
+.dose-time {
+  width: 96rpx;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.dose-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dose-name {
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.dose-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.dose-btn {
+  flex-shrink: 0;
+}
+
+.dose-conflict {
+  margin-left: 12rpx;
+}
+
+.plan-conflict {
+  margin-left: 12rpx;
+}
+
+.plan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.plan-row:first-child {
+  border-top: none;
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-name {
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.plan-freq {
+  margin-left: var(--space-1);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 2rpx 12rpx;
+  font-size: var(--font-xs);
+  font-weight: 400;
+}
+
+.plan-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.plan-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12rpx;
+  flex-shrink: 0;
+}

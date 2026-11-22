@@ -1,0 +1,9 @@
+{
+  "desc": "小咪工具箱页面收录配置",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "*"
+    }
+  ]
+}

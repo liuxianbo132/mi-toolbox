@@ -1,0 +1,46 @@
+<view class="bf">
+  <view class="bf-mode">
+    <view class="bf-mode-item {{mode === 'direct' ? 'bf-mode-active' : ''}}" data-mode="direct" bindtap="onModeChange">直接选到期日</view>
+    <view class="bf-mode-item {{mode === 'calc' ? 'bf-mode-active' : ''}}" data-mode="calc" bindtap="onModeChange">生产日期+保质期</view>
+  </view>
+
+  <view wx:if="{{mode === 'direct'}}" class="bf-row">
+    <text class="bf-label">到期日</text>
+    <picker class="bf-flex" mode="date" value="{{expiryDate}}" bindchange="onExpiryChange">
+      <view class="bf-picker {{expiryDate ? '' : 'bf-placeholder'}}">{{expiryDate || '选择日期'}}</view>
+    </picker>
+  </view>
+
+  <block wx:else>
+    <view class="bf-row">
+      <text class="bf-label">生产日期</text>
+      <picker class="bf-flex" mode="date" value="{{productionDate}}" bindchange="onProductionChange">
+        <view class="bf-picker {{productionDate ? '' : 'bf-placeholder'}}">{{productionDate || '选择日期'}}</view>
+      </picker>
+    </view>
+    <view class="bf-row">
+      <text class="bf-label">保质期(天)</text>
+      <input class="bf-ipt bf-flex" type="number" value="{{shelfLifeDays}}" bindinput="onDaysInput" placeholder="如 365" />
+    </view>
+    <view class="bf-hint">生产当天计第 1 天</view>
+    <view wx:if="{{computedExpiry}}" class="bf-row">
+      <text class="bf-label">换算到期日</text>
+      <text class="bf-calc">{{computedExpiry}}</text>
+    </view>
+  </block>
+
+  <view class="bf-row">
+    <text class="bf-label">数量</text>
+    <input class="bf-ipt bf-flex" type="digit" value="{{quantity}}" bindinput="onQuantityInput" placeholder="如 2" />
+  </view>
+  <view class="bf-row">
+    <text class="bf-label">单位</text>
+    <input class="bf-ipt bf-flex" value="{{unit}}" bindinput="onUnitInput" placeholder="{{defaultUnit || '如 盒'}}" />
+  </view>
+  <view class="bf-row">
+    <text class="bf-label">存放位置</text>
+    <picker class="bf-flex" mode="selector" range="{{locationLabels}}" value="{{locationIndex}}" bindchange="onLocationChange">
+      <view class="bf-picker">{{locationLabels[locationIndex]}}</view>
+    </picker>
+  </view>
+</view>

@@ -1,0 +1,77 @@
+/* 批次表单组件：使用全局设计令牌（CSS 变量沿 DOM 继承，组件内可直接引用） */
+
+.bf-mode {
+  display: flex;
+  background: #F0F2F5;
+  border-radius: var(--radius-sm);
+  padding: 6rpx;
+  margin-bottom: 20rpx;
+}
+
+.bf-mode-item {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-2);
+  border-radius: 6rpx;
+}
+
+.bf-mode-active {
+  background: var(--color-card);
+  color: var(--color-primary);
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.bf-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.bf-label {
+  width: 170rpx;
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  flex-shrink: 0;
+}
+
+.bf-flex {
+  flex: 1;
+}
+
+.bf-picker {
+  background: var(--color-bg);
+  border: 1rpx solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 20rpx;
+  font-size: var(--font-md);
+  color: var(--color-text-1);
+}
+
+.bf-placeholder {
+  color: var(--color-text-3);
+}
+
+.bf-ipt {
+  background: var(--color-bg);
+  border: 1rpx solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 20rpx;
+  font-size: var(--font-md);
+  color: var(--color-text-1);
+}
+
+.bf-calc {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.bf-hint {
+  padding-left: 186rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-bottom: var(--space-2);
+}

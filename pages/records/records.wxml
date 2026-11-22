@@ -1,0 +1,25 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="card-title">操作记录（{{records.length}}）</view>
+    <view wx:if="{{records.length === 0}}" class="hint-sm">暂无操作记录</view>
+    <view wx:for="{{records}}" wx:for-item="r" wx:key="id" class="rec-row">
+      <view class="rec-main">
+        <view class="rec-title">
+          <text class="rec-action {{r.actionClass}}">{{r.actionLabel}}</text>
+          <text class="rec-item">{{r.itemName}}</text>
+        </view>
+        <view class="rec-meta">{{r.ownerName}}<text wx:if="{{r.qtyText}}"> · 数量 {{r.qtyText}}</text></view>
+      </view>
+      <view class="rec-time">{{r.timeText}}</view>
+    </view>
+  </view>
+</view>

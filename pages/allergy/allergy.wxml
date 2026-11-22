@@ -1,0 +1,30 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:elif="{{authState === 'forbidden'}}" class="card center-hint">仅本人或管理员可管理该成员的过敏档案</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="card-title">{{memberName}} 的过敏原（{{allergens.length}}）</view>
+    <view wx:if="{{allergens.length === 0}}" class="hint-sm">暂无登记</view>
+    <view wx:for="{{allergens}}" wx:for-item="a" wx:key="id" class="allergen-row">
+      <text class="allergen-name">{{a.allergen}}</text>
+      <button size="mini" class="btn-danger" data-id="{{a.id}}" data-allergen="{{a.allergen}}" bindtap="removeAllergen">删</button>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">添加过敏原</view>
+    <view class="form-row">
+      <input class="ipt" value="{{newAllergen}}" bindinput="onNewInput" placeholder="如 花生 / 青霉素" maxlength="20" />
+      <button size="mini" class="btn-primary" loading="{{saving}}" disabled="{{saving}}" bindtap="addAllergen">添加</button>
+    </view>
+    <view class="form-hint">与药品「过敏关联」按文本精确匹配（如「花生」对「花生」），用于就医用药提示。</view>
+  </view>
+</view>

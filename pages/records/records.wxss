@@ -1,0 +1,73 @@
+/* 操作记录页；公共类已收编至 app.wxss */
+
+.hint-sm {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  padding: 12rpx 0;
+  text-align: center;
+}
+
+.rec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.rec-row:first-child {
+  border-top: none;
+}
+
+.rec-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.rec-title {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.rec-action {
+  flex-shrink: 0;
+}
+
+.rec-item {
+  font-size: var(--font-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 6rpx;
+}
+
+.rec-time {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+}
+
+/* 动作标签：开封用品牌色、用完为中性地灰 */
+.rec-open {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 4rpx 12rpx;
+  font-size: var(--font-xs);
+}
+
+.rec-ghost {
+  background: rgba(120, 120, 128, 0.12);
+  color: var(--color-text-2);
+  border-radius: var(--radius-sm);
+  padding: 4rpx 12rpx;
+  font-size: var(--font-xs);
+}

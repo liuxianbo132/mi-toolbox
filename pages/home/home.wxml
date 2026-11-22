@@ -1,0 +1,71 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <view class="app-title">小咪工具箱</view>
+  <view class="app-sub">家庭物品保质期管理</view>
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:else>
+  <view wx:if="{{!household}}" class="card">
+    <view class="card-title">先创建或加入一个家庭</view>
+    <view class="form-row">
+      <input class="ipt" placeholder="家庭名称，如：四百五之家" value="{{createName}}" bindinput="onCreateNameInput" />
+      <button size="mini" class="btn-primary" disabled="{{familyBusy}}" bindtap="createHousehold">创建家庭</button>
+    </view>
+    <view class="divider">或</view>
+    <view class="form-row">
+      <input class="ipt" placeholder="输入家人分享的邀请码" value="{{joinCode}}" bindinput="onJoinCodeInput" />
+      <button size="mini" class="btn-primary" disabled="{{familyBusy}}" bindtap="joinHousehold">加入家庭</button>
+    </view>
+  </view>
+
+  <view wx:else>
+    <view wx:if="{{missedToday > 0}}" class="alert-bar" bindtap="goMedication">
+      <text class="alert-text">今日漏服 {{missedToday}} 次，点击查看用药</text>
+      <text class="alert-arrow">›</text>
+    </view>
+
+    <view class="stats">
+      <view class="stat-item">
+        <view class="stat-num red">{{stats.expired}}</view>
+        <view class="stat-label">已过期</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num amber">{{stats.danger}}</view>
+        <view class="stat-label">尽快消耗</view>
+      </view>
+      <view class="stat-item">
+        <view class="stat-num green">{{stats.warn}}</view>
+        <view class="stat-label">留意</view>
+      </view>
+    </view>
+
+    <block wx:for="{{zones}}" wx:for-item="z" wx:key="key">
+      <view wx:if="{{z.items.length > 0}}" class="zone">
+        <view class="zone-head">
+          <view class="zone-dot {{z.key === 'warn' ? 'dot-amber' : 'dot-red'}}"></view>
+          <text class="zone-title">{{z.title}}（{{z.items.length}}）</text>
+        </view>
+        <view wx:for="{{z.items}}" wx:for-item="b" wx:key="id" class="card urgent-card" data-id="{{b.item_id}}" bindtap="goDetail">
+          <view class="uc-main">
+            <view class="uc-name">{{b.name}}</view>
+            <view class="uc-sub">
+              <text class="cat-chip">{{b.catLabel}}</text>
+              <text class="uc-qty">{{b.qtyText}}</text>
+            </view>
+          </view>
+          <view class="uc-side">
+            <view class="uc-num {{z.key === 'warn' ? 'amber' : 'red'}}">{{b.daysBig}}</view>
+            <view class="uc-label">{{b.daysLabel}}</view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:if="{{zones[0].items.length === 0 && zones[1].items.length === 0 && zones[2].items.length === 0}}" class="card center-hint">
+      暂无临期批次，去「库存」添加物品吧
+    </view>
+  </view>
+</view>

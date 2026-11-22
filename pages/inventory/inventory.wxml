@@ -1,0 +1,37 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:else>
+  <view wx:if="{{!household}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+  <block wx:else>
+    <view class="card action-row">
+      <button class="btn-primary add-btn" bindtap="goCreate">＋ 新增物品</button>
+      <button class="btn-ghost scan-btn" bindtap="gobarcode">扫码</button>
+    </view>
+    <view class="loc-entry" bindtap="golocations">
+      <text>管理存放位置</text>
+      <text class="arrow">›</text>
+    </view>
+    <view wx:if="{{items.length === 0}}" class="card center-hint">
+      <view>还没有物品记录</view>
+      <button size="mini" class="btn-primary" bindtap="goCreate">去录入</button>
+    </view>
+    <block wx:else>
+      <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group">
+        <view class="group-head">{{g.label}}（{{g.count}}）</view>
+        <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="card item-row" data-id="{{item.id}}" bindtap="goDetail">
+          <view class="item-main">
+            <view class="item-name">{{item.name}}</view>
+            <view class="item-meta">{{item.brand || ''}} {{item.spec || ''}}</view>
+          </view>
+          <text class="loc-badge {{item.locKnown ? 'loc-known' : ''}}">{{item.locText}}</text>
+          <view class="arrow">›</view>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

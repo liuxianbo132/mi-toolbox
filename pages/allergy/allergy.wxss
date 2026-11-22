@@ -1,0 +1,31 @@
+/* 过敏档案页；公共类已收编至 app.wxss */
+
+.hint-sm {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  padding: 12rpx 0;
+  text-align: center;
+}
+
+.allergen-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.allergen-row:first-child {
+  border-top: none;
+}
+
+.allergen-name {
+  font-size: var(--font-md);
+}
+
+.form-hint {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  margin-top: var(--space-2);
+}

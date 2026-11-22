@@ -1,0 +1,62 @@
+{
+  "appid": "wxe283d0c4444ada92",
+  "projectname": "xiaomi-toolbox",
+  "compileType": "miniprogram",
+  "libVersion": "3.18.0",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "minified": true,
+    "urlCheck": false,
+    "packNpmManually": true,
+    "packNpmRelationList": [
+      {
+        "packageJsonPath": "./package.json",
+        "miniprogramNpmDistDir": "./"
+      }
+    ],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "docs",
+        "type": "folder"
+      },
+      {
+        "value": "sql",
+        "type": "folder"
+      },
+      {
+        "value": ".workbuddy",
+        "type": "folder"
+      },
+      {
+        "value": "node_modules",
+        "type": "folder"
+      },
+      {
+        "value": "package-lock.json",
+        "type": "file"
+      },
+      {
+        "value": ".wbapp_r53cbHLLmYxU6r3LT4wbA6.genie",
+        "type": "file"
+      },
+      {
+        "value": ".wbapp_mCzPMhf3up1PsJr96aYq59.privacy.json",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

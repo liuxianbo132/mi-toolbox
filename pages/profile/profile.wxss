@@ -1,0 +1,82 @@
+/* 页面独有样式；公共类（center、login、app-title、err、btn-danger）已收编至 app.wxss */
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+
+.label {
+  color: var(--color-text-3);
+}
+
+.code {
+  color: var(--color-primary);
+}
+
+.member-list {
+  margin-top: var(--space-1);
+}
+
+.member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.member-row:first-child {
+  border-top: none;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.self-tag {
+  display: inline-block;
+  margin-left: var(--space-1);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  font-size: 20rpx;
+}
+
+.member-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.member-actions {
+  display: flex;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.member-empty {
+  text-align: center;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  padding: var(--space-2) 0;
+}
+
+.entry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-md);
+}
+
+.entry-arrow {
+  color: #C7C7CC;
+  font-size: var(--font-lg);
+}

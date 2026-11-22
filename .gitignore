@@ -1,0 +1,20 @@
+# 依赖
+node_modules/
+
+# 微信小程序 npm 构建产物（开发者工具「构建 npm」可重生成）
+miniprogram_npm/
+
+# 微信开发者工具个人配置（本机路径、热重载开关等）
+project.private.config.json
+
+# WorkBuddy 应用卡私有元数据（含本机绝对路径）
+.wbapp_*.genie
+.wbapp_*.privacy.json
+
+# 内部工作区记忆与操作日志
+.workbuddy/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log

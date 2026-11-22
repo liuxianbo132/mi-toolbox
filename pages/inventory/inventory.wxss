@@ -1,0 +1,80 @@
+/* 页面独有样式；公共类（center、login、err、center-hint）已收编至 app.wxss */
+
+.action-row {
+  display: flex;
+  gap: var(--space-2);
+  padding: 20rpx var(--space-3);
+}
+
+.add-btn {
+  flex: 1;
+}
+
+.scan-btn {
+  width: 180rpx;
+  flex-shrink: 0;
+}
+
+.loc-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 var(--space-3) var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+}
+
+.loc-badge {
+  flex-shrink: 0;
+  background: rgba(120, 120, 128, 0.12);
+  color: var(--color-text-3);
+  border-radius: var(--radius-sm);
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  margin-right: 12rpx;
+}
+
+.loc-known {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.group {
+  margin-top: var(--space-2);
+}
+
+.group-head {
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-1);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: var(--font-lg);
+  font-weight: 500;
+}
+
+.item-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.arrow {
+  color: #C7C7CC;
+  font-size: var(--font-lg);
+  margin-left: 12rpx;
+}

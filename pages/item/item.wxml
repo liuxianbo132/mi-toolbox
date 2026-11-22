@@ -1,0 +1,167 @@
+<view wx:if="{{loading}}" class="center">加载中…</view>
+
+<view wx:elif="{{!item}}" class="card center-hint">物品不存在或已被删除</view>
+
+<view wx:else>
+  <!-- 物品信息 / 编辑 -->
+  <view class="card">
+    <view wx:if="{{!editing}}">
+      <view class="detail-head">
+        <view class="detail-name">{{item.name}}</view>
+        <button size="mini" class="btn-ghost" bindtap="startEdit">编辑</button>
+      </view>
+      <view class="detail-meta">
+        <text class="cat-chip">{{item.categoryDisplay}}</text>
+        <text wx:if="{{item.brand}}">品牌：{{item.brand}}</text>
+        <text wx:if="{{item.spec}}">规格：{{item.spec}}</text>
+        <text wx:if="{{item.unit}}">单位：{{item.unit}}</text>
+      </view>
+    </view>
+    <view wx:else>
+      <view class="card-title">编辑物品</view>
+      <view class="form-row">
+        <text class="f-label">名称</text>
+        <input class="ipt" value="{{editName}}" bindinput="onEditName" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">品类</text>
+        <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="display" value="{{editCategoryIndex}}" bindchange="onEditCategory">
+          <view class="ipt">{{categoryOptions[editCategoryIndex].display}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="f-label">单位</text>
+        <input class="ipt" value="{{editUnit}}" bindinput="onEditUnit" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">品牌</text>
+        <input class="ipt" value="{{editBrand}}" bindinput="onEditBrand" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">规格</text>
+        <input class="ipt" value="{{editSpec}}" bindinput="onEditSpec" />
+      </view>
+      <view class="edit-actions">
+        <button size="mini" class="btn-ghost" bindtap="cancelEdit">取消</button>
+        <button size="mini" class="btn-primary" loading="{{editSaving}}" disabled="{{editSaving}}" bindtap="saveEdit">保存</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 用药计划（M2a，仅药品） -->
+  <view class="card" wx:if="{{item.category === 'medicine'}}">
+    <view class="sec-head">
+      <view class="card-title">用药计划（{{medPlans.length}}）</view>
+      <button size="mini" class="btn-primary" bindtap="goNewPlan">＋ 新建</button>
+    </view>
+    <view wx:if="{{medPlans.length === 0}}" class="hint-sm">暂无用药计划</view>
+    <view wx:for="{{medPlans}}" wx:for-item="p" wx:key="id" class="plan-line" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goPlanEdit">
+      <view class="plan-line-main">
+        <view class="plan-line-title">{{p.timesText}} · {{p.freqLabel}}</view>
+        <view class="plan-line-meta">{{p.memberName}} · {{p.courseText}}</view>
+      </view>
+      <text class="{{p.status === 'active' ? 'tag-green' : 'tag-amber'}}">{{p.statusLabel}}</text>
+    </view>
+  </view>
+
+  <!-- 过敏关联与冲突（M2b，仅药品） -->
+  <view class="card" wx:if="{{item.category === 'medicine'}}">
+    <view class="card-title">过敏关联（{{medLinks.length}}）</view>
+    <view wx:if="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
+      <text>你的过敏档案命中：{{hitsSummary}}</text>
+    </view>
+    <view wx:if="{{medLinks.length === 0}}" class="hint-sm">暂无过敏关联</view>
+    <view wx:for="{{medLinks}}" wx:for-item="l" wx:key="id" class="link-row">
+      <view class="link-main">
+        <text class="link-allergen">{{l.allergen}}</text>
+        <text class="{{l.kind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{l.kindLabel}}</text>
+        <text wx:if="{{l.hit}}" class="tag-red">命中</text>
+      </view>
+      <button size="mini" class="btn-ghost" data-id="{{l.id}}" data-allergen="{{l.allergen}}" data-kind="{{l.kindLabel}}" bindtap="removeLink">删</button>
+    </view>
+    <view class="form-row">
+      <input class="ipt" value="{{linkAllergen}}" bindinput="onLinkAllergenInput" placeholder="过敏原，如 青霉素" maxlength="20" />
+      <picker class="link-kind" mode="selector" range="{{linkKindOptions}}" range-key="label" value="{{linkKindIndex}}" bindchange="onLinkKindChange">
+        <view class="ipt link-kind-value">{{linkKindOptions[linkKindIndex].label}}</view>
+      </picker>
+    </view>
+    <button size="mini" class="btn-primary add-link-btn" loading="{{linkSaving}}" disabled="{{linkSaving}}" bindtap="addLink">添加关联</button>
+  </view>
+
+  <!-- 在库批次（卡片组，V2 Step1） -->
+  <view class="zone">
+    <view class="zone-head">
+      <text class="zone-title">在库批次（{{activeBatches.length}}）</text>
+      <button size="mini" class="btn-primary" bindtap="toggleAddBatch">{{addingBatch ? '收起' : '+ 新增'}}</button>
+    </view>
+
+    <view wx:if="{{addingBatch}}" class="card">
+      <batch-form id="addBatchForm" default-unit="{{item.unit}}" locations="{{locations}}"></batch-form>
+      <button class="btn-primary add-save" loading="{{addSaving}}" disabled="{{addSaving}}" bindtap="saveNewBatch">保存批次</button>
+    </view>
+
+    <view wx:if="{{editingBatchId}}" class="card">
+      <view class="card-title">编辑批次</view>
+      <view class="form-row">
+        <text class="f-label">到期日</text>
+        <picker class="ipt-flex" mode="date" value="{{editingExpiry}}" bindchange="onEditBatchExpiry">
+          <view class="ipt">{{editingExpiry || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="f-label">数量</text>
+        <input class="ipt" type="digit" value="{{editingQuantity}}" bindinput="onEditBatchQuantity" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">单位</text>
+        <input class="ipt" value="{{editingUnit}}" bindinput="onEditBatchUnit" />
+      </view>
+      <view class="edit-actions">
+        <button size="mini" class="btn-ghost" bindtap="cancelBatchEdit">取消</button>
+        <button size="mini" class="btn-primary" loading="{{editBatchSaving}}" disabled="{{editBatchSaving}}" bindtap="saveBatchEdit">保存</button>
+      </view>
+    </view>
+
+    <view wx:if="{{!addingBatch && !editingBatchId && activeBatches.length === 0}}" class="card center-hint">暂无在库批次，点右上角「+ 新增」添加</view>
+
+    <view wx:for="{{activeBatches}}" wx:for-item="b" wx:key="id" class="card batch-card" data-id="{{b.id}}" bindtap="onBatchTap">
+      <view class="bc-top">
+        <view class="bc-expiry">
+          <text class="bc-date">到期 {{b.displayExpiry}}</text>
+          <text class="{{b.tagClass}}">{{b.daysText}}</text>
+        </view>
+        <view class="bc-side">
+          <view class="bc-qty">{{b.quantity}} {{b.unit}}</view>
+          <text wx:if="{{b.isOpened}}" class="opened-tag">已开封</text>
+        </view>
+      </view>
+      <view class="bc-loc">位置：{{b.locationName}}</view>
+      <view class="bc-actions">
+        <button wx:if="{{!b.isOpened}}" size="mini" class="btn-ghost" data-id="{{b.id}}" catchtap="markOpened">开封</button>
+        <button size="mini" class="btn-ghost" data-id="{{b.id}}" data-status="used" catchtap="setBatchStatus">用完</button>
+        <button size="mini" class="btn-warn" data-id="{{b.id}}" data-status="discarded" catchtap="setBatchStatus">报废</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史批次（折叠区，V2 Step1） -->
+  <view class="card" wx:if="{{historyBatches.length > 0}}">
+    <view class="fold-head" bindtap="togglehistory">
+      <view class="card-title fold-title">历史批次（{{historyBatches.length}}）</view>
+      <text class="fold-arrow">{{historyExpanded ? '收起' : '展开'}}</text>
+    </view>
+    <block wx:if="{{historyExpanded}}">
+      <view wx:for="{{historyBatches}}" wx:for-item="b" wx:key="id" class="batch-row" data-id="{{b.id}}" bindtap="onBatchTap">
+        <view class="batch-info">
+          <view class="batch-line"><text>到期 {{b.expiry_date}}</text></view>
+          <view class="batch-sub">数量 {{b.quantity}} {{b.unit}} · 位置：{{b.locationName}}</view>
+        </view>
+        <text class="{{b.statusTagClass}}">{{b.statusLabel}}</text>
+      </view>
+    </block>
+  </view>
+
+  <view class="card">
+    <button class="btn-danger del-btn" bindtap="deleteItem">删除物品</button>
+  </view>
+</view>

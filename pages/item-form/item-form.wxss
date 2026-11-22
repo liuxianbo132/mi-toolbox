@@ -1,0 +1,21 @@
+/* 页面独有样式；公共类（center、login、err、card-title、form-row、ipt、f-label、center-hint）已收编至 app.wxss */
+
+.ipt-flex {
+  flex: 1;
+}
+
+.save-btn {
+  margin-top: var(--space-3);
+}
+
+.barcode-value {
+  color: var(--color-text-2);
+}
+
+/* 视觉录入按钮：整行、次要视觉层级 */
+.recognize-btn {
+  width: 100%;
+  margin-bottom: var(--space-3);
+  font-size: var(--font-md);
+  font-weight: 500;
+}

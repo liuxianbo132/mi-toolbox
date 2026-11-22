@@ -1,0 +1,312 @@
+/* ============================================================
+   小咪工具箱 · 全局样式与设计令牌（Apple 风格 · 2026-11-22）
+   参考 Apple HIG / iOS 17 系统色：
+   - 主色 systemBlue #007AFF；背景 systemGroupedBackground #F2F2F7
+   - 文字 label / secondaryLabel / tertiaryLabel 三级灰
+   - 语义三色映射固定（不得翻转，测试断言依赖）：
+     red=过期·危险 / amber=临期·注意 / green=安全·在库（iOS systemRed/Orange/Green 深色文字版）
+   - 圆角 10/20/24rpx（iOS 10-12px 体系）；触控目标 88rpx（44px）
+   注：WXSS 不支持 :focus/:active 伪类，按压态统一由 button 默认
+   hover-class="button-hover" 承载。
+   ============================================================ */
+
+page {
+  /* 品牌色板 · iOS system blue */
+  --color-primary: #007AFF;
+  --color-primary-light: #E9F2FF;
+  --color-primary-press: #0062CC;
+  /* 中性色 · iOS 灰阶体系 */
+  --color-bg: #F2F2F7;
+  --color-card: #FFFFFF;
+  --color-text-1: #1C1C1E;
+  --color-text-2: #6C6C70;
+  --color-text-3: #8E8E93;
+  --color-border: #E5E5EA;
+  /* 语义三色（映射固定，不得翻转） */
+  --color-red: #C4271E;
+  --color-red-bg: #FFEAE9;
+  --color-amber: #A85600;
+  --color-amber-bg: #FFF2E0;
+  --color-green: #1E7B34;
+  --color-green-bg: #E6F7EB;
+  /* 圆角 · Apple 体系 */
+  --radius-sm: 10rpx;
+  --radius-md: 20rpx;
+  --radius-lg: 24rpx;
+  /* 间距体系（4pt 网格） */
+  --space-1: 8rpx;
+  --space-2: 16rpx;
+  --space-3: 24rpx;
+  --space-4: 32rpx;
+  /* 字号层级（iOS type scale） */
+  --font-xs: 22rpx;
+  --font-sm: 26rpx;
+  --font-md: 28rpx;
+  --font-lg: 32rpx;
+  --font-xl: 44rpx;
+  /* 阴影 · 极轻（iOS 以分层与留白表达高度，不用重阴影） */
+  --shadow-card: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+
+  background-color: var(--color-bg);
+  font-size: var(--font-md);
+  color: var(--color-text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== 卡片（iOS 分组卡片：大圆角 + 极轻阴影） ===== */
+
+.card {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-card);
+}
+
+/* ===== 按钮（Apple 触控尺寸 44px，圆角 10px，按压轻压） ===== */
+
+.btn-primary,
+.btn-ghost,
+.btn-warn,
+.btn-danger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  line-height: 1;
+  padding: 0 var(--space-4);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+/* mini 按钮：紧凑尺寸，同样 flex 居中（覆盖 button 默认行高导致的偏上） */
+button[size="mini"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60rpx;
+  line-height: 1;
+  padding: 0 20rpx;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.btn-ghost {
+  background: rgba(120, 120, 128, 0.12);
+  color: #3C3C43;
+}
+
+.btn-warn {
+  background: var(--color-amber-bg);
+  color: var(--color-amber);
+}
+
+.btn-danger {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+}
+
+.btn-primary::after,
+.btn-ghost::after,
+.btn-warn::after,
+.btn-danger::after {
+  border: none;
+}
+
+.button-hover {
+  opacity: 0.82;
+}
+
+/* ===== 语义标签（映射固定：red=过期·危险，amber=临期·注意，green=安全·在库） ===== */
+
+.tag-red,
+.tag-amber,
+.tag-green {
+  border-radius: var(--radius-sm);
+  padding: 4rpx 14rpx;
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+.tag-red {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+}
+
+.tag-amber {
+  background: var(--color-amber-bg);
+  color: var(--color-amber);
+}
+
+.tag-green {
+  background: var(--color-green-bg);
+  color: var(--color-green);
+}
+
+/* ===== 表单 ===== */
+
+.card-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-text-1);
+  letter-spacing: -0.2rpx;
+  margin-bottom: var(--space-3);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.ipt {
+  flex: 1;
+  background: rgba(120, 120, 128, 0.08);
+  border: 1rpx solid transparent;
+  border-radius: var(--radius-md);
+  padding: 18rpx 24rpx;
+  font-size: var(--font-md);
+  color: var(--color-text-1);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.f-label {
+  width: 110rpx;
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  flex-shrink: 0;
+}
+
+/* ===== 登录态与状态占位 ===== */
+
+.center {
+  padding: 200rpx 0;
+  text-align: center;
+  color: var(--color-text-3);
+  font-size: var(--font-sm);
+}
+
+.login-card {
+  margin-top: 200rpx;
+  text-align: center;
+}
+
+.login-btn {
+  width: 80%;
+}
+
+.app-title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  letter-spacing: -0.5rpx;
+  margin-bottom: var(--space-1);
+}
+
+.app-sub {
+  color: var(--color-text-3);
+  margin-bottom: 40rpx;
+}
+
+.err {
+  display: block;
+  color: var(--color-red);
+  margin-top: var(--space-2);
+  font-size: var(--font-xs);
+}
+
+/* ===== 分区与版块（看板/库存/详情共用） ===== */
+
+.zone {
+  margin-top: var(--space-2);
+}
+
+.zone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.zone-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-3);
+  letter-spacing: 0.4rpx;
+}
+
+.zone-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+}
+
+.dot-red {
+  background: #FF3B30;
+}
+
+.dot-amber {
+  background: #FF9500;
+}
+
+.cat-chip {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 2rpx 12rpx;
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+/* ===== 过敏冲突提示（三处页面共用） ===== */
+
+.conflict-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 20rpx;
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  margin-bottom: var(--space-2);
+}
+
+.conflict-danger {
+  background: var(--color-red-bg);
+  color: var(--color-red);
+}
+
+.conflict-warn {
+  background: var(--color-amber-bg);
+  color: var(--color-amber);
+}
+
+/* ===== 空态（图标位 + 文案层级） ===== */
+
+.center-hint {
+  text-align: center;
+  color: var(--color-text-3);
+  padding: 60rpx var(--space-3);
+  font-size: var(--font-sm);
+  line-height: 1.7;
+}
+
+.center-hint::before {
+  content: '📦';
+  display: block;
+  font-size: 56rpx;
+  line-height: 1;
+  margin-bottom: var(--space-2);
+  opacity: 0.55;
+}

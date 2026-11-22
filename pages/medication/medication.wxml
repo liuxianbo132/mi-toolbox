@@ -1,0 +1,45 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:else>
+  <!-- 今日时间线 -->
+  <view class="card">
+    <view class="card-title">今日用药 · {{todayText}}</view>
+    <view wx:if="{{timeline.length === 0}}" class="hint-sm">今天没有用药安排</view>
+    <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row">
+      <view class="dose-time">{{d.time}}</view>
+      <view class="dose-main">
+        <view class="dose-name">{{d.itemName}}<text wx:if="{{d.conflictKind}}" class="{{d.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}} dose-conflict">{{d.conflictLabel}}</text></view>
+        <view class="dose-meta" wx:if="{{d.memberName}}">{{d.memberName}}</view>
+      </view>
+      <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
+      <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" data-id="{{d.id}}" bindtap="confirmDose">确认</button>
+    </view>
+  </view>
+
+  <!-- 计划列表 -->
+  <view class="card">
+    <view class="sec-head">
+      <view class="card-title">用药计划（{{plans.length}}）</view>
+      <button size="mini" class="btn-primary" bindtap="goNewPlan">＋ 新建</button>
+    </view>
+    <view wx:if="{{plans.length === 0}}" class="hint-sm">还没有用药计划，点右上角新建</view>
+    <view wx:for="{{plans}}" wx:for-item="p" wx:key="id" class="plan-row" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goEditPlan">
+      <view class="plan-main">
+        <view class="plan-name">{{p.itemName}}<text wx:if="{{p.conflictKind}}" class="{{p.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}} plan-conflict">{{p.conflictLabel}}</text><text class="plan-freq">{{p.freqLabel}}</text></view>
+        <view class="plan-meta">{{p.timesText}}<text wx:if="{{p.memberName}}"> · {{p.memberName}}</text></view>
+        <view class="plan-meta">{{p.courseText}}</view>
+      </view>
+      <view class="plan-side">
+        <text class="{{p.status === 'active' ? 'tag-green' : 'tag-amber'}}">{{p.statusLabel}}</text>
+        <button wx:if="{{p.canEdit}}" size="mini" class="btn-warn" data-id="{{p.id}}" catchtap="cancelPlan">取消</button>
+      </view>
+    </view>
+  </view>
+</view>

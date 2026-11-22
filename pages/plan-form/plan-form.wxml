@@ -1,0 +1,79 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="card-title">{{planId ? '编辑用药计划' : '新建用药计划'}}</view>
+
+    <view class="form-row">
+      <text class="f-label">药品</text>
+      <view wx:if="{{lockedItemId}}" class="ipt locked-value">{{lockedItemName || '该药品'}}</view>
+      <picker wx:else class="ipt-flex" mode="selector" range="{{medicineNames}}" value="{{medicineIndex}}" bindchange="onMedicineChange">
+        <view class="ipt">{{medicineNames[medicineIndex] || '选择药品'}}</view>
+      </picker>
+    </view>
+
+    <view wx:if="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
+      <text>你的过敏档案命中：{{hitsSummary}}</text>
+    </view>
+
+    <view class="form-row">
+      <text class="f-label">服药人</text>
+      <picker class="ipt-flex" mode="selector" range="{{memberNames}}" value="{{memberIndex}}" bindchange="onMemberChange">
+        <view class="ipt">{{memberNames[memberIndex] || '选择成员'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="f-label">频次</text>
+      <picker class="ipt-flex" mode="selector" range="{{freqOptions}}" value="{{freqIndex}}" bindchange="onFreqChange">
+        <view class="ipt">{{freqOptions[freqIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-block">
+      <text class="f-label block-label">服药时间点</text>
+      <view wx:for="{{timeList}}" wx:for-item="t" wx:key="*this" class="time-row">
+        <picker class="ipt-flex" mode="time" value="{{t}}" data-index="{{index}}" bindchange="onTimeChange">
+          <view class="ipt">{{t}}</view>
+        </picker>
+        <button wx:if="{{timeList.length > 1}}" size="mini" class="btn-ghost" data-index="{{index}}" bindtap="removeTime">删</button>
+      </view>
+      <button size="mini" class="btn-ghost add-time" bindtap="addTime">＋ 添加时间点</button>
+    </view>
+
+    <view class="form-row">
+      <text class="f-label">开始日期</text>
+      <picker class="ipt-flex" mode="date" value="{{startDate}}" bindchange="onStartChange">
+        <view class="ipt">{{startDate || '选择日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="f-label">结束日期</text>
+      <picker class="ipt-flex" mode="date" value="{{endDate}}" bindchange="onEndChange">
+        <view class="ipt">{{endDate || '选择日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-hint">疗程最长 180 天；隔天服 = 开始日起每 2 个日历日服药一次</view>
+
+    <view class="form-row">
+      <text class="f-label">漏服判定</text>
+      <picker class="ipt-flex" mode="selector" range="{{thresholdOptions}}" value="{{thresholdIndex}}" bindchange="onThresholdChange">
+        <view class="ipt">{{thresholdOptions[thresholdIndex]}} 分钟</view>
+      </picker>
+    </view>
+    <view class="form-hint">超过该时长未确认，自动标记为漏服</view>
+  </view>
+
+  <view class="card">
+    <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="onSave">保存计划</button>
+  </view>
+</view>

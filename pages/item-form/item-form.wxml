@@ -1,0 +1,47 @@
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="card-title">物品信息</view>
+    <button class="btn-ghost recognize-btn" loading="{{recognizing}}" disabled="{{recognizing}}" bindtap="onRecognize">📷 拍照识别（自动填名称 / 品类 / 保质期）</button>
+    <view class="form-row">
+      <text class="f-label">名称</text>
+      <input class="ipt" value="{{name}}" bindinput="onNameInput" placeholder="如 鲜牛奶" />
+    </view>
+    <view class="form-row">
+      <text class="f-label">品类</text>
+      <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="display" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="ipt">{{categoryOptions[categoryIndex].display}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="f-label">单位</text>
+      <input class="ipt" value="{{unit}}" bindinput="onUnitInput" placeholder="如 盒 / 瓶 / 袋" />
+    </view>
+    <view class="form-row">
+      <text class="f-label">品牌</text>
+      <input class="ipt" value="{{brand}}" bindinput="onBrandInput" placeholder="选填" />
+    </view>
+    <view class="form-row">
+      <text class="f-label">规格</text>
+      <input class="ipt" value="{{spec}}" bindinput="onSpecInput" placeholder="选填，如 250ml×12" />
+    </view>
+    <view wx:if="{{barcode}}" class="form-row">
+      <text class="f-label">条码</text>
+      <view class="ipt barcode-value">{{barcode}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title">首批批次</view>
+    <batch-form id="batchForm" default-unit="{{unit}}" locations="{{locations}}"></batch-form>
+    <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="onSaveTap">保存</button>
+  </view>
+</view>

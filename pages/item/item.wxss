@@ -1,0 +1,233 @@
+/* 页面独有样式；.center/.center-hint/.form-row/.ipt/.f-label 已收编至 app.wxss */
+
+.ipt-flex {
+  flex: 1;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.detail-name {
+  font-size: var(--font-xl);
+  font-weight: 600;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx var(--space-3);
+  align-items: center;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+}
+
+.sec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.hint-sm {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  padding: 12rpx 0;
+  text-align: center;
+}
+
+.batch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.batch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.batch-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: var(--font-md);
+}
+
+.batch-sub {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.add-save {
+  margin-top: var(--space-2);
+}
+
+.del-btn {
+  width: 100%;
+}
+
+.plan-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.plan-line:first-child {
+  border-top: none;
+}
+
+.plan-line-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-line-title {
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.plan-line-meta {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  margin-top: 4rpx;
+}
+
+.link-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.link-row:first-child {
+  border-top: none;
+}
+
+.link-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.link-allergen {
+  font-size: var(--font-md);
+}
+
+.link-kind {
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.link-kind-value {
+  flex: none;
+  text-align: center;
+}
+
+.add-link-btn {
+  margin-top: var(--space-1);
+}
+
+.opened-tag {
+  margin-left: 12rpx;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 2rpx 10rpx;
+  font-size: 20rpx;
+}
+
+/* ===== V2 Step1：在库批次卡片组 ===== */
+
+.batch-card {
+  display: block;
+}
+
+.bc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.bc-expiry {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.bc-date {
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.bc-side {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.bc-qty {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+}
+
+.bc-loc {
+  margin-top: 6rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+}
+
+.bc-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1rpx solid var(--color-border);
+}
+
+/* ===== V2 Step1：历史批次折叠 ===== */
+
+.fold-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fold-title {
+  margin-bottom: 0;
+}
+
+.fold-arrow {
+  color: var(--color-primary);
+  font-size: var(--font-xs);
+}

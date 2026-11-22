@@ -1,0 +1,47 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/inventory/inventory",
+    "pages/profile/profile",
+    "pages/scan/scan",
+    "pages/item/item",
+    "pages/item-form/item-form",
+    "pages/medication/medication",
+    "pages/plan-form/plan-form",
+    "pages/allergy/allergy",
+    "pages/locations/locations",
+    "pages/records/records"
+  ],
+  "tabBar": {
+    "color": "#8E8E93",
+    "selectedColor": "#007AFF",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "临期看板"
+      },
+      {
+        "pagePath": "pages/inventory/inventory",
+        "text": "库存"
+      },
+      {
+        "pagePath": "pages/medication/medication",
+        "text": "用药"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "window": {
+    "navigationBarTitleText": "小咪工具箱",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F2F2F7"
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

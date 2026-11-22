@@ -1,0 +1,41 @@
+/* 用药计划表单；公共表单类已收编至 app.wxss */
+
+.ipt-flex {
+  flex: 1;
+}
+
+.locked-value {
+  color: var(--color-text-2);
+}
+
+.form-block {
+  margin-bottom: var(--space-2);
+}
+
+.block-label {
+  display: block;
+  width: auto;
+  margin-bottom: var(--space-1);
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.add-time {
+  margin-left: 110rpx;
+}
+
+.form-hint {
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  margin: 0 0 var(--space-2) 110rpx;
+}
+
+.save-btn {
+  width: 100%;
+}

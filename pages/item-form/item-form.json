@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "录入物品",
+  "usingComponents": {
+    "batch-form": "/components/batch-form/batch-form"
+  }
+}
