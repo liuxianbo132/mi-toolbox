@@ -44,11 +44,20 @@
 }
 
 .group-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
   padding: 0 var(--space-3);
   margin-bottom: var(--space-1);
   font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-2);
+}
+
+.group-ico {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 10rpx;
 }
 
 .item-row {

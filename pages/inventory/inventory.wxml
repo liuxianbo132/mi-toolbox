@@ -22,7 +22,10 @@
     </view>
     <block wx:else>
       <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group">
-        <view class="group-head">{{g.label}}（{{g.count}}）</view>
+        <view class="group-head">
+          <image class="group-ico" src="{{g.illu}}" mode="aspectFit" />
+          <text>{{g.label}}（{{g.count}}）</text>
+        </view>
         <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="card item-row" data-id="{{item.id}}" bindtap="goDetail">
           <view class="item-main">
             <view class="item-name">{{item.name}}</view>

@@ -10,15 +10,21 @@
 <view wx:else>
   <view class="card">
     <view class="card-title">物品信息</view>
-    <button class="btn-ghost recognize-btn" loading="{{recognizing}}" disabled="{{recognizing}}" bindtap="onRecognize">📷 拍照识别（自动填名称 / 品类 / 保质期）</button>
+    <button class="btn-ghost recognize-btn" loading="{{recognizing}}" disabled="{{recognizing}}" bindtap="onRecognize">
+      <image class="recognize-ico" src="/assets/icons/camera.svg" />
+      <text>拍照识别（自动填名称 / 品类 / 保质期）</text>
+    </button>
     <view class="form-row">
       <text class="f-label">名称</text>
       <input class="ipt" value="{{name}}" bindinput="onNameInput" placeholder="如 鲜牛奶" />
     </view>
     <view class="form-row">
       <text class="f-label">品类</text>
-      <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="display" value="{{categoryIndex}}" bindchange="onCategoryChange">
-        <view class="ipt">{{categoryOptions[categoryIndex].display}}</view>
+      <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="ipt cat-picker">
+          <image class="picker-ico" src="/assets/illustrations/{{categoryOptions[categoryIndex].value}}.svg" mode="aspectFit" />
+          <text>{{categoryOptions[categoryIndex].label}}</text>
+        </view>
       </picker>
     </view>
     <view class="form-row">

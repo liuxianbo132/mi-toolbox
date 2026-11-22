@@ -25,4 +25,25 @@ function categoryIcon(value) {
   return findCategory(value).icon
 }
 
-module.exports = { CATEGORIES, categoryLabel, categoryDisplay, categoryIcon }
+// 品类插画路径（assets/illustrations，Apple 轻拟物 SVG；分类无法识别时回落 default）
+const ILLUSTRATIONS = {
+  food: '/assets/illustrations/food.svg',
+  medicine: '/assets/illustrations/medicine.svg',
+  daily: '/assets/illustrations/daily.svg',
+  other: '/assets/illustrations/other.svg',
+}
+const DEFAULT_ILLUSTRATION = '/assets/illustrations/default.svg'
+
+function categoryIllustration(value) {
+  return ILLUSTRATIONS[value] || DEFAULT_ILLUSTRATION
+}
+
+module.exports = {
+  CATEGORIES,
+  categoryLabel,
+  categoryDisplay,
+  categoryIcon,
+  categoryIllustration,
+  ILLUSTRATIONS,
+  DEFAULT_ILLUSTRATION,
+}

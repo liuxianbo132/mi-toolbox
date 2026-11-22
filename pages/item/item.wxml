@@ -11,7 +11,10 @@
         <button size="mini" class="btn-ghost" bindtap="startEdit">编辑</button>
       </view>
       <view class="detail-meta">
-        <text class="cat-chip">{{item.categoryDisplay}}</text>
+        <view class="cat-chip">
+          <image class="chip-ico" src="{{item.categoryIllu}}" mode="aspectFit" />
+          <text>{{item.categoryLabel}}</text>
+        </view>
         <text wx:if="{{item.brand}}">品牌：{{item.brand}}</text>
         <text wx:if="{{item.spec}}">规格：{{item.spec}}</text>
         <text wx:if="{{item.unit}}">单位：{{item.unit}}</text>
@@ -25,8 +28,11 @@
       </view>
       <view class="form-row">
         <text class="f-label">品类</text>
-        <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="display" value="{{editCategoryIndex}}" bindchange="onEditCategory">
-          <view class="ipt">{{categoryOptions[editCategoryIndex].display}}</view>
+        <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{editCategoryIndex}}" bindchange="onEditCategory">
+          <view class="ipt cat-picker">
+            <image class="picker-ico" src="/assets/illustrations/{{categoryOptions[editCategoryIndex].value}}.svg" mode="aspectFit" />
+            <text>{{categoryOptions[editCategoryIndex].label}}</text>
+          </view>
         </picker>
       </view>
       <view class="form-row">

@@ -18,4 +18,10 @@
   margin-bottom: var(--space-3);
   font-size: var(--font-md);
   font-weight: 500;
+  gap: 12rpx;
+}
+
+.recognize-ico {
+  width: 36rpx;
+  height: 36rpx;
 }

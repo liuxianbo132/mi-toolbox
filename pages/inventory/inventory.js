@@ -1,5 +1,5 @@
 const { cloud } = require('../../utils/cloud')
-const { CATEGORIES, categoryLabel } = require('../../utils/constants')
+const { CATEGORIES, categoryLabel, categoryIllustration } = require('../../utils/constants')
 
 Page({
   data: {
@@ -105,7 +105,7 @@ Page({
         return i.category === c.value || (c.value === 'other' && !known[i.category])
       })
       if (list.length > 0) {
-        groups.push({ key: c.value, label: c.display || c.label, count: list.length, items: list })
+        groups.push({ key: c.value, label: c.label, illu: categoryIllustration(c.value), count: list.length, items: list })
       }
     })
     this.setData({ items: decorated, groups: groups })

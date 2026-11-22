@@ -1,107 +1,419 @@
-/* 页面独有样式；公共类（center、login、app 标题、err、card-title、form-row、ipt、center-hint）已收编至 app.wxss */
+/* 首页 · Apple iOS 风格（参考「小咪家」设计稿） */
 
-.alert-bar {
-  display: flex;
-  justify-content: space-between;
+.page {
+  padding-bottom: 40rpx;
+  background: linear-gradient(180deg, #EAF2FE 0, #F2F2F7 360rpx) no-repeat;
+}
+
+/* ===== 顶部家庭标识 ===== */
+
+.topbar {
+  padding: 24rpx 32rpx 0;
+}
+
+.brand {
+  display: inline-flex;
   align-items: center;
-  background: var(--color-red-bg);
-  color: var(--color-red);
-  border-radius: var(--radius-md);
-  margin: var(--space-2) var(--space-3) 0;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-sm);
+  gap: 16rpx;
 }
 
-.alert-arrow {
-  font-size: var(--font-lg);
-}
-
-.divider {
-  text-align: center;
-  color: var(--color-text-3);
-  margin: 20rpx 0;
-  font-size: var(--font-xs);
-}
-
-.stats {
+.brand-badge {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 20rpx;
+  background: #E9F2FF;
   display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-ico {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.brand-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text-1);
+  letter-spacing: -0.3rpx;
+}
+
+.brand-arrow {
+  width: 22rpx;
+  height: 22rpx;
+  opacity: 0.35;
+  transform: rotate(90deg);
+  margin-left: 2rpx;
+}
+
+/* ===== 问候 ===== */
+
+.hero {
+  padding: 20rpx 32rpx 28rpx;
+}
+
+.hero-title {
+  font-size: 46rpx;
+  font-weight: 700;
+  letter-spacing: -0.6rpx;
+  color: var(--color-text-1);
+}
+
+.hero-sub {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: var(--color-text-3);
+}
+
+/* ===== 统计三卡 ===== */
+
+.stats-card {
+  display: flex;
+  margin: 0 24rpx;
+  padding: 30rpx 8rpx 26rpx;
   background: var(--color-card);
   border-radius: var(--radius-lg);
-  margin: var(--space-2) var(--space-3);
-  padding: var(--space-3) 0;
   box-shadow: var(--shadow-card);
 }
 
-.stat-item {
+.stat-cell {
   flex: 1;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-badge {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-red {
+  background: #FFEAE9;
+}
+
+.badge-amber {
+  background: #FFF2E0;
+}
+
+.badge-green {
+  background: #E6F7EB;
+}
+
+.stat-ico {
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .stat-num {
-  font-size: 44rpx;
-  font-weight: 600;
-}
-
-.stat-num.red { color: var(--color-red); }
-.stat-num.amber { color: var(--color-amber); }
-.stat-num.green { color: var(--color-green); }
-
-.stat-label {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  margin-top: 4rpx;
-}
-
-.urgent-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.uc-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.uc-name {
-  font-size: var(--font-md);
-  font-weight: 500;
-}
-
-.uc-sub {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-top: 6rpx;
-}
-
-.uc-qty {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-}
-
-.uc-side {
-  flex-shrink: 0;
-  text-align: right;
-  margin-left: var(--space-2);
-}
-
-.uc-num {
+  margin-top: 12rpx;
   font-size: 44rpx;
   font-weight: 700;
   line-height: 1.1;
 }
 
-.uc-num.red {
+.stat-num.red {
   color: var(--color-red);
 }
 
-.uc-num.amber {
+.stat-num.amber {
   color: var(--color-amber);
 }
 
-.uc-label {
-  font-size: 20rpx;
+.stat-num.green {
+  color: var(--color-green);
+}
+
+.stat-label {
+  margin-top: 4rpx;
+  font-size: 24rpx;
   color: var(--color-text-3);
-  margin-top: 2rpx;
+}
+
+/* ===== 漏服提醒条 ===== */
+
+.alert-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: var(--color-red-bg);
+  border-radius: var(--radius-md);
+}
+
+.alert-ico {
+  width: 34rpx;
+  height: 34rpx;
+}
+
+.alert-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: var(--color-red);
+  font-weight: 500;
+}
+
+.alert-arrow {
+  width: 20rpx;
+  height: 20rpx;
+  opacity: 0.4;
+}
+
+/* ===== 分区卡片（临期物品 / 今日用药） ===== */
+
+.section-card {
+  margin: 16rpx 24rpx;
+  padding-bottom: 8rpx;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 28rpx 12rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.section-ico {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 26rpx;
+  color: var(--color-text-3);
+}
+
+.more-arrow {
+  width: 20rpx;
+  height: 20rpx;
+  opacity: 0.4;
+}
+
+.zone {
+  margin-top: 4rpx;
+}
+
+.zone-head {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 28rpx 2rpx;
+}
+
+.zone-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  margin-right: 10rpx;
+}
+
+.dot-red {
+  background: #FF3B30;
+}
+
+.dot-amber {
+  background: #FF9500;
+}
+
+.zone-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--color-text-3);
+  letter-spacing: 0.4rpx;
+}
+
+/* ===== 列表行 ===== */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 28rpx;
+}
+
+.row + .row {
+  border-top: 1rpx solid #F5F5F7;
+}
+
+.row-illu {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+.row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--color-text-1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row-sub {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+  color: var(--color-text-3);
+}
+
+.row-tag {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.row-arrow {
+  width: 22rpx;
+  height: 22rpx;
+  opacity: 0.28;
+  flex-shrink: 0;
+}
+
+/* ===== 空态 ===== */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36rpx 0 48rpx;
+}
+
+.empty-illu {
+  width: 152rpx;
+  height: 152rpx;
+  opacity: 0.9;
+}
+
+.empty-text {
+  margin-top: 14rpx;
+  font-size: 28rpx;
+  color: var(--color-text-2);
+}
+
+.empty-hint {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--color-text-3);
+}
+
+.empty-inline {
+  padding: 24rpx 28rpx 28rpx;
+  font-size: 26rpx;
+  color: var(--color-text-3);
+}
+
+/* ===== 连续打卡 ===== */
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 10rpx 28rpx 20rpx;
+  padding: 18rpx 24rpx;
+  background: #FFF6E8;
+  border-radius: 16rpx;
+}
+
+.streak-ico {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.streak-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: var(--color-amber);
+}
+
+.streak-hint {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: var(--color-text-3);
+}
+
+/* ===== 快捷入口 ===== */
+
+.quick {
+  display: flex;
+  gap: 16rpx;
+  margin: 16rpx 24rpx 40rpx;
+}
+
+.quick-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 8rpx;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.quick-badge {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 22rpx;
+  background: #F4F6FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-ico {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.quick-label {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--color-text-2);
+}
+
+/* ===== 登录与家庭表单（沿用全局风格） ===== */
+
+.login-card {
+  margin-top: 200rpx;
+  text-align: center;
+}
+
+.login-btn {
+  width: 80%;
+}
+
+.divider {
+  text-align: center;
+  color: var(--color-text-3);
+  font-size: 24rpx;
+  margin: 20rpx 0;
 }
