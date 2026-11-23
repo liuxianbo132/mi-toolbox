@@ -215,7 +215,7 @@ Page({
       return
     }
     if (res && res.saved) {
-      wx.showToast({ title: '文件已保存，当前微信版本不支持分享', icon: 'none' })
+      wx.showToast({ title: '文件已保存到本地，可点下方重新分享', icon: 'none' })
       return
     }
     wx.showToast({ title: (res && res.error) || '导出失败', icon: 'none' })

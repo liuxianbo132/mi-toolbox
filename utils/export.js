@@ -183,7 +183,9 @@ function writeAndShare(fileName, content) {
                 return
               }
               console.warn('shareFileMessage fail:', msg)
-              resolve({ error: '分享失败，请稍后重试' })
+              // 文件已写入成功，只是分享调用未完成（环境限制/系统错误）——按 saved 语义返回，
+              // 不报「导出失败」，避免用户误以为备份没生成
+              resolve({ saved: true, path: filePath, error: '分享未成功' })
             },
           })
         },
