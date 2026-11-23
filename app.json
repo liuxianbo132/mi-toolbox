@@ -8,6 +8,7 @@
     "pages/item-form/item-form",
     "pages/medication/medication",
     "pages/plan-form/plan-form",
+    "pages/adherence/adherence",
     "pages/allergy/allergy",
     "pages/locations/locations",
     "pages/records/records"

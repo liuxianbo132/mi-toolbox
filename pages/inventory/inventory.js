@@ -1,6 +1,15 @@
 const { cloud } = require('../../utils/cloud')
 const { CATEGORIES, categoryLabel, categoryIllustration } = require('../../utils/constants')
 
+// 低库存口径：active 批次 quantity 之和 ≤ 阈值即库存不足；
+// 阈值缺省（未设置）回落 0 —— 即「用光才提醒」，避免"只剩 1 件"把正常家庭物品全标成不足
+const DEFAULT_LOW_STOCK_THRESHOLD = 0
+
+function lowStockThreshold(value) {
+  const n = Number(value)
+  return value == null || !isFinite(n) ? DEFAULT_LOW_STOCK_THRESHOLD : n
+}
+
 Page({
   data: {
     authState: 'checking',
@@ -99,7 +108,7 @@ Page({
       const expected = Math.min(pageSize, maxItems - from + 1)
       const { data: page, error } = await cloud.database
         .from('items')
-        .select('id, name, category, unit, brand, spec, barcode, created_at')
+        .select('id, name, category, unit, brand, spec, barcode, created_at, low_stock_threshold')
         .eq('household_id', hid)
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
@@ -137,7 +146,7 @@ Page({
       const expected = Math.min(batchPageSize, maxBatches - from + 1)
       const { data: page, error } = await cloud.database
         .from('batches')
-        .select('id, item_id, location_id, expiry_date, status')
+        .select('id, item_id, location_id, expiry_date, status, quantity')
         .eq('household_id', hid)
         .eq('status', 'active')
         .order('expiry_date', { ascending: true })
@@ -154,11 +163,15 @@ Page({
     if (batchDataLimited) activeBatches.length = maxBatches
     const itemLocSet = {}
     const earliestExpiry = {}
+    const totalQty = {}
     activeBatches.forEach(function (b) {
       if (b.item_id == null) return
       if (!itemLocSet[b.item_id]) itemLocSet[b.item_id] = {}
       if (b.location_id != null) itemLocSet[b.item_id][b.location_id] = true
       if (b.expiry_date && (!earliestExpiry[b.item_id] || b.expiry_date < earliestExpiry[b.item_id])) earliestExpiry[b.item_id] = b.expiry_date
+      // 低库存：active 批次数量累加，quantity 为空按 0 计
+      const qty = b.quantity == null ? 0 : Number(b.quantity)
+      totalQty[b.item_id] = (totalQty[b.item_id] || 0) + (isFinite(qty) ? qty : 0)
     })
     const decorated = items.map(function (row) {
       const set = itemLocSet[row.id] || {}
@@ -175,11 +188,15 @@ Page({
         locText = '多位置'
         locKnown = true
       }
+      const itemQty = totalQty[row.id] || 0
       return Object.assign({}, row, {
         locText: locText,
         locKnown: locKnown,
         locationIds: ids.map(String),
         earliestExpiry: earliestExpiry[row.id] || '',
+        totalQty: itemQty,
+        lowStock: itemQty <= lowStockThreshold(row.low_stock_threshold),
+        stockText: itemQty === 0 ? '已用完' : '仅剩 ' + itemQty + (row.unit ? ' ' + row.unit : ''),
       })
     })
     const locationOptions = [{ id: 'all', name: '全部位置' }].concat((locRes.data || []).map(function (l) { return { id: String(l.id), name: l.name } }))

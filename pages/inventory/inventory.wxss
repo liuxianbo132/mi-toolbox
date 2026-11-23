@@ -46,6 +46,11 @@
   color: var(--color-primary);
 }
 
+.stock-tag {
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
 .group {
   margin-top: var(--space-2);
 }

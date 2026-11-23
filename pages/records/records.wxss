@@ -74,3 +74,83 @@
   padding: 4rpx 12rpx;
   font-size: var(--font-xs);
 }
+
+/* ===== 本月概览（四类动作 + 消耗率） ===== */
+
+.sum-grid {
+  display: flex;
+  margin-top: 8rpx;
+}
+
+.sum-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sum-num {
+  font-size: 42rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text-1);
+}
+
+.sum-num.green {
+  color: var(--color-green);
+}
+
+.sum-num.blue {
+  color: var(--color-primary);
+}
+
+.sum-num.red {
+  color: var(--color-red);
+}
+
+.sum-label {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: var(--color-text-3);
+}
+
+.ratio-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 26rpx;
+}
+
+.ratio-label {
+  font-size: 24rpx;
+  color: var(--color-text-2);
+  flex-shrink: 0;
+}
+
+.ratio-bar {
+  flex: 1;
+  height: 10rpx;
+  background: #F0F0F3;
+  border-radius: 5rpx;
+  overflow: hidden;
+}
+
+.ratio-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7BE3A0, #34C759);
+  border-radius: 5rpx;
+}
+
+.ratio-value {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--color-text-1);
+  flex-shrink: 0;
+}
+
+.summary-hint {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--color-text-3);
+}

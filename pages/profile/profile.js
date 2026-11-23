@@ -1,4 +1,15 @@
 const { cloud } = require('../../utils/cloud')
+const { buildFamilyExport, writeAndShare } = require('../../utils/export')
+
+// 文件名用本地时间 YYYYMMDD，避免跨天备份重名
+function pad2(n) {
+  return n < 10 ? '0' + n : String(n)
+}
+
+function dateStamp(date) {
+  const d = date || new Date()
+  return String(d.getFullYear()) + pad2(d.getMonth() + 1) + pad2(d.getDate())
+}
 
 Page({
   data: {
@@ -11,6 +22,7 @@ Page({
     loginError: '',
     loginLoading: false,
     largeText: false,
+    exportBusy: false, // 导出防连点
   },
 
   onShow() {
@@ -88,6 +100,62 @@ Page({
       }
     })
     this.setData({ members: members })
+  },
+
+  // ===== 数据备份：导出 JSON 快照 / items CSV，写给微信会话 =====
+
+  onexportjson() {
+    return this.doExport('json')
+  },
+
+  onexportcsv() {
+    return this.doExport('csv')
+  },
+
+  async doExport(kind) {
+    if (this.data.exportBusy) return
+    this.setData({ exportBusy: true })
+    wx.showLoading({ title: '导出中…', mask: true })
+    try {
+      const hid = await this.resolveHouseholdId()
+      if (!hid) {
+        wx.hideLoading()
+        wx.showToast({ title: '请先创建或加入家庭', icon: 'none' })
+        return
+      }
+      const result = await buildFamilyExport(hid)
+      const stamp = dateStamp(new Date())
+      const isJson = kind === 'json'
+      const fileName = isJson ? '小咪工具箱备份-' + stamp + '.json' : '小咪工具箱-items-' + stamp + '.csv'
+      const content = isJson ? JSON.stringify(result.json, null, 2) : result.itemsCsv
+      const res = await writeAndShare(fileName, content)
+      wx.hideLoading()
+      if (res && res.error) {
+        wx.showToast({ title: res.error, icon: 'none' })
+        return
+      }
+      wx.showToast({ title: '已生成，请选择发送对象', icon: 'none' })
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: (e && e.message) || '导出失败', icon: 'none' })
+    } finally {
+      this.setData({ exportBusy: false })
+    }
+  },
+
+  // session → members 取本人 household_id，与 loadHousehold 的查法保持一致
+  async resolveHouseholdId() {
+    const { data: session } = await cloud.auth.getSession()
+    const uid = session && session.user && session.user.id
+    if (!uid) return null
+    const { data: mine, error } = await cloud.database
+      .from('members')
+      .select('household_id')
+      .eq('owner_id', uid)
+      .limit(1)
+    if (error) throw new Error(error.message || '读取家庭信息失败')
+    const row = mine && mine[0]
+    return row ? row.household_id : null
   },
 
   // V2 Step4：操作记录入口

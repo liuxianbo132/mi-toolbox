@@ -34,6 +34,15 @@ const DOSE_TAG = {
   missed: { text: '漏服', cls: 'tag-red' },
 }
 
+// 低库存口径：active 批次 quantity 之和 ≤ 阈值即库存不足；
+// 阈值缺省（未设置）回落 0 —— 即「用光才提醒」，与 inventory 页同口径
+const DEFAULT_LOW_STOCK_THRESHOLD = 0
+
+function lowStockThreshold(value) {
+  const n = Number(value)
+  return value == null || !isFinite(n) ? DEFAULT_LOW_STOCK_THRESHOLD : n
+}
+
 Page({
   data: {
     largeText: false,
@@ -53,6 +62,7 @@ Page({
     todayDoseTotal: 0,
     medicationSummaryState: 'loading', // loading | ready | error
     streakDays: 0,
+    restockCount: 0, // 低库存（待补货）物品数
   },
 
   onShow() {
@@ -107,6 +117,7 @@ Page({
         stats: { expired: 0, danger: 0, warn: 0, safe: 0 },
         todayDoses: [],
         streakDays: 0,
+        restockCount: 0,
       })
       return
     }
@@ -119,6 +130,7 @@ Page({
     this.loadDoseAlert(hid)
     this.loadTodayDoses(hid)
     this.loadStreak(hid)
+    this.loadRestock(hid)
   },
 
   // 任务5：看板首屏埋一次订阅授权（storage 防重复打扰；模板 id 未下发时静默跳过、不记标记）
@@ -134,7 +146,7 @@ Page({
   async loadUrgent(hid) {
     const { data, error } = await cloud.database
       .from('batches')
-      .select('id, item_id, expiry_date, opened_at, quantity, unit, status, items(name, category, pao_days)')
+      .select('id, item_id, expiry_date, production_date, opened_at, quantity, unit, status, items(name, category, pao_days)')
       .eq('household_id', hid)
       .eq('status', 'active')
       .order('expiry_date', { ascending: true })
@@ -158,6 +170,20 @@ Page({
         safe++
         return
       }
+      // 剩余保质期进度条：仅当「有生产日期 + 未开封」时可算比例（总保质期已知）；
+      // 未开封避免 effectiveExpiry 与总期限口径混淆；无生产日期或已开封时隐藏
+      let progressPct = null
+      if (!b.opened_at && b.production_date && b.expiry_date) {
+        const pStr = String(b.production_date).slice(0, 10).replace(/-/g, '/')
+        const eStr = String(b.expiry_date).slice(0, 10).replace(/-/g, '/')
+        const pMs = new Date(pStr).getTime()
+        const eMs = new Date(eStr).getTime()
+        const todayMs = new Date(toDateOnly(new Date()).replace(/-/g, '/')).getTime()
+        if (isFinite(pMs) && isFinite(eMs) && eMs > pMs && todayMs >= pMs) {
+          const ratio = 1 - (todayMs - pMs) / (eMs - pMs)
+          progressPct = Math.max(0, Math.min(100, Math.round(ratio * 100)))
+        }
+      }
       const entry = {
         id: b.id,
         item_id: b.item_id,
@@ -167,6 +193,7 @@ Page({
         qtyText: (b.quantity != null ? b.quantity : '') + (b.unit ? ' ' + b.unit : ''),
         expiry: baseDate,
         days: d,
+        progressPct: progressPct,
         daysBig: Math.abs(d) + ' 天',
         daysLabel: d < 0 ? '已超期' + Math.abs(d) + ' 天' : d === 0 ? '今天到期' : d + ' 天后到期',
         tagText: level === 'expired' ? '需处理' : level === 'danger' ? '尽快用' : '留意',
@@ -319,6 +346,53 @@ Page({
       cursor.setDate(cursor.getDate() - 1)
     }
     this.setData({ streakDays: streak })
+  },
+
+  // 低库存提醒：统计待补货物品数（active 批次 quantity 之和 ≤ 阈值）
+  async loadRestock(hid) {
+    const itemRes = await cloud.database
+      .from('items')
+      .select('id, low_stock_threshold, unit')
+      .eq('household_id', hid)
+      .limit(500)
+    if (itemRes.error) {
+      this.setData({ restockCount: 0 })
+      return
+    }
+    const items = itemRes.data || []
+    if (!items.length) {
+      this.setData({ restockCount: 0 })
+      return
+    }
+    const pageSize = 500
+    const maxBatches = 3000
+    const batches = []
+    for (let from = 0; from <= maxBatches; from += pageSize) {
+      const expected = Math.min(pageSize, maxBatches - from + 1)
+      const { data: page, error } = await cloud.database
+        .from('batches')
+        .select('item_id, quantity')
+        .eq('household_id', hid)
+        .eq('status', 'active')
+        .order('id', { ascending: true })
+        .range(from, Math.min(from + pageSize - 1, maxBatches))
+      if (error) {
+        this.setData({ restockCount: 0 })
+        return
+      }
+      batches.push.apply(batches, page || [])
+      if (batches.length > maxBatches || !page || page.length < expected) break
+    }
+    const totalQty = {}
+    batches.forEach(function (b) {
+      if (b.item_id == null) return
+      const qty = b.quantity == null ? 0 : Number(b.quantity)
+      totalQty[b.item_id] = (totalQty[b.item_id] || 0) + (isFinite(qty) ? qty : 0)
+    })
+    const count = items.filter(function (i) {
+      return (totalQty[i.id] || 0) <= lowStockThreshold(i.low_stock_threshold)
+    }).length
+    this.setData({ restockCount: count })
   },
 
   goMedication() {

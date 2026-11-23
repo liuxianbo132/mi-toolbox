@@ -1,0 +1,223 @@
+/* 用药依从性报告：范围切换 + 依从率 + 逐日柱状图 + 漏服明细（Apple 风格，复用全局令牌） */
+
+/* ===== 范围切换（分段控件） ===== */
+
+.range-tabs {
+  display: flex;
+  gap: 6rpx;
+  margin: var(--space-2) var(--space-3) 0;
+  padding: 6rpx;
+  background: rgba(120, 120, 128, 0.10);
+  border-radius: var(--radius-md);
+}
+
+.range-tab {
+  flex: 1;
+  padding: 16rpx 0;
+  text-align: center;
+  font-size: var(--font-sm);
+  color: var(--color-text-2);
+  border-radius: var(--radius-md);
+}
+
+.range-tab.on {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ===== 依从率主展示 ===== */
+
+.rate-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.rate-value {
+  display: flex;
+  align-items: baseline;
+}
+
+.rate-num {
+  font-size: 96rpx;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -2rpx;
+}
+
+.rate-unit {
+  margin-left: 4rpx;
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.rate-label {
+  margin-top: 4rpx;
+  font-size: var(--font-sm);
+  color: var(--color-text-3);
+}
+
+.rate-sub {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--color-text-2);
+  text-align: right;
+  line-height: 1.6;
+}
+
+.rate-green { color: var(--color-green); }
+.rate-amber { color: var(--color-amber); }
+.rate-red { color: var(--color-red); }
+
+/* ===== 逐日柱状图（容器 240rpx，底部对齐） ===== */
+
+.chart-box {
+  height: 240rpx;
+  margin-top: var(--space-3);
+}
+
+.chart-scroll {
+  width: 100%;
+  height: 100%;
+  white-space: nowrap;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  min-width: 100%;
+  height: 240rpx;
+}
+
+.bar-cell {
+  flex: 1;
+  min-width: 56rpx;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0 2rpx;
+  box-sizing: border-box;
+}
+
+.bar {
+  width: 60%;
+  max-width: 24rpx;
+  min-width: 8rpx;
+  border-radius: 4rpx;
+  background: var(--color-border);
+}
+
+.bar-green { background: var(--color-green); }
+.bar-amber { background: var(--color-amber); }
+.bar-red { background: var(--color-red); }
+.bar-empty { background: var(--color-border); }
+
+.bar-label {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  color: var(--color-text-3);
+  white-space: nowrap;
+}
+
+/* ===== 图例 ===== */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: var(--font-xs);
+  color: var(--color-text-3);
+}
+
+.legend-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+}
+
+.dot-green { background: var(--color-green); }
+.dot-amber { background: var(--color-amber); }
+.dot-red { background: var(--color-red); }
+
+/* ===== 漏服明细 ===== */
+
+.missed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding: 18rpx 24rpx;
+  background: rgba(120, 120, 128, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.missed-when {
+  flex-shrink: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.missed-name {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+/* ===== 状态与说明 ===== */
+
+.error-card {
+  text-align: center;
+}
+
+.err-text {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-sm);
+  color: var(--color-red);
+  line-height: 1.6;
+}
+
+.retry-btn {
+  width: 60%;
+  margin: 0 auto;
+}
+
+/* 覆盖全局 center-hint 的图标位，保持纯文字提示 */
+.adherence-nohouse::before {
+  content: '';
+  margin-bottom: 0;
+}
+
+.adherence-note {
+  padding: var(--space-2) var(--space-3) 40rpx;
+  text-align: center;
+  font-size: var(--font-xs);
+  color: var(--color-text-3);
+  line-height: 1.6;
+}
+
+/* ===== 大字模式 ===== */
+
+.large-text .rate-num { font-size: 110rpx; }
+.large-text .rate-unit { font-size: var(--font-lg); }
+.large-text .rate-label { font-size: var(--font-sm); }
+.large-text .rate-sub { font-size: 26rpx; }
+.large-text .bar-label { font-size: 22rpx; }
+.large-text .missed-when { font-size: 28rpx; }
+.large-text .missed-name { font-size: 34rpx; }
+.large-text .adherence-note { font-size: 26rpx; }

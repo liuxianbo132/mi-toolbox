@@ -52,6 +52,7 @@
             <view class="item-name">{{item.name}}</view>
             <view class="item-meta">{{item.brand || ''}} {{item.spec || ''}}</view>
           </view>
+          <text wx:if="{{item.lowStock}}" class="tag-amber stock-tag">库存不足</text>
           <text class="loc-badge {{item.locKnown ? 'loc-known' : ''}}">{{item.locText}}</text>
           <view class="arrow">›</view>
         </view>

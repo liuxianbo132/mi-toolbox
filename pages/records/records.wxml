@@ -9,6 +9,36 @@
 <view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
 
 <view wx:else>
+  <view wx:if="{{summary}}" class="card summary-card">
+    <view class="card-title">本月概览</view>
+    <view class="sum-grid">
+      <view class="sum-cell">
+        <view class="sum-num green">{{summary.create}}</view>
+        <view class="sum-label">入库</view>
+      </view>
+      <view class="sum-cell">
+        <view class="sum-num blue">{{summary.open}}</view>
+        <view class="sum-label">开封</view>
+      </view>
+      <view class="sum-cell">
+        <view class="sum-num">{{summary.use_up}}</view>
+        <view class="sum-label">用完</view>
+      </view>
+      <view class="sum-cell">
+        <view class="sum-num red">{{summary.discard}}</view>
+        <view class="sum-label">报废</view>
+      </view>
+    </view>
+    <view class="ratio-row">
+      <text class="ratio-label">消耗率</text>
+      <view class="ratio-bar">
+        <view class="ratio-fill" style="width: {{summary.consumeRate}}%"></view>
+      </view>
+      <text class="ratio-value">{{summary.rateText}}</text>
+    </view>
+    <view class="summary-hint">{{summary.wasteText}}{{summary.capped ? '（已达 1000 条统计上限）' : ''}}</view>
+  </view>
+
   <view class="card">
     <view class="card-title">操作记录（{{records.length}}）</view>
     <view wx:if="{{records.length === 0}}" class="hint-sm">暂无操作记录</view>

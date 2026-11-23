@@ -97,6 +97,9 @@
           <view class="row-main">
             <view class="row-name">{{b.name}}</view>
             <view class="row-sub">{{b.daysLabel}} · {{b.qtyText}}</view>
+            <view wx:if="{{b.progressPct !== null}}" class="progress">
+              <view class="progress-fill {{z.key === 'warn' ? 'fill-amber' : 'fill-red'}}" style="width: {{b.progressPct}}%"></view>
+            </view>
           </view>
           <text class="row-tag {{b.tagClass}}">{{b.tagText}}</text>
           <image class="row-arrow" src="/assets/icons/chevron.svg" />
@@ -105,7 +108,7 @@
     </block>
 
     <view wx:if="{{zones[0].items.length === 0 && zones[1].items.length === 0 && zones[2].items.length === 0}}" class="empty">
-      <image class="empty-illu" src="/assets/illustrations/default.svg" mode="aspectFit" />
+      <image class="empty-illu" src="/assets/illustrations/v2/empty.png" mode="aspectFit" />
       <view class="empty-text">暂无临期物品</view>
       <view class="empty-hint">去「库存」添加物品吧</view>
     </view>
@@ -128,7 +131,7 @@
     <view wx:elif="{{medicationSummaryState === 'error'}}" class="empty-inline">今日用药暂时无法加载，请点击查看用药</view>
     <view wx:elif="{{todayDoses.length === 0}}" class="empty-inline">今日暂无用药安排</view>
     <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row dose-row {{index === 0 ? 'dose-featured' : ''}}" bindtap="goMedication">
-      <image class="row-illu" src="/assets/illustrations/medicine.svg" mode="aspectFit" />
+      <image class="row-illu" src="/assets/illustrations/v2/medicine.png" mode="aspectFit" />
       <view class="row-main">
         <view class="row-name">{{d.name}}</view>
         <view class="row-sub" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>
@@ -145,6 +148,13 @@
       <text class="streak-text">连续打卡 {{streakDays}} 天</text>
       <text class="streak-hint">继续保持！</text>
     </view>
+  </view>
+
+  <!-- 低库存提醒 -->
+  <view wx:if="{{restockCount > 0}}" class="alert-restock" bindtap="goInventory">
+    <image class="restock-ico" src="/assets/icons/alertCircle.svg" />
+    <text class="restock-text">{{restockCount}} 件物品已用完，待补货</text>
+    <image class="restock-arrow" src="/assets/icons/chevron.svg" />
   </view>
 
   <!-- 快捷入口 -->

@@ -168,6 +168,36 @@
   opacity: 0.4;
 }
 
+/* ===== 低库存提醒条 ===== */
+
+.alert-restock {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: #FFF2E0;
+  border-radius: var(--radius-md);
+}
+
+.restock-ico {
+  width: 34rpx;
+  height: 34rpx;
+}
+
+.restock-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: var(--color-amber);
+  font-weight: 500;
+}
+
+.restock-arrow {
+  width: 20rpx;
+  height: 20rpx;
+  opacity: 0.4;
+}
+
 /* ===== 分区卡片（临期物品 / 今日用药） ===== */
 
 .section-card {
@@ -282,6 +312,28 @@
   margin-top: 4rpx;
   font-size: 24rpx;
   color: var(--color-text-3);
+}
+
+/* 剩余保质期进度条（仅有生产日期且未开封的批次显示） */
+.progress {
+  margin-top: 8rpx;
+  height: 8rpx;
+  background: #F0F0F3;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4rpx;
+}
+
+.fill-red {
+  background: linear-gradient(90deg, #FF8A80, #FF3B30);
+}
+
+.fill-amber {
+  background: linear-gradient(90deg, #FFD08A, #FF9500);
 }
 
 .row-tag {
@@ -428,7 +480,7 @@
 }
 
 .cat-background { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
-.topbar, .hero, .stats-card, .alert-bar, .section-card, .quick { position: relative; z-index: 1; }
+.topbar, .hero, .stats-card, .alert-bar, .alert-restock, .section-card, .quick { position: relative; z-index: 1; }
 
 .topbar { padding: 28rpx 36rpx 0; }
 .brand { gap: 18rpx; }

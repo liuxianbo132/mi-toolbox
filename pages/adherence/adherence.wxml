@@ -1,0 +1,78 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onwechatlogin">微信一键登录</button>
+  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint adherence-nohouse">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:elif="{{loading}}" class="center">加载中…</view>
+
+<view wx:elif="{{loadError}}" class="card error-card">
+  <view class="err-text">{{loadError}}</view>
+  <button class="btn-ghost retry-btn" bindtap="retryload">重试</button>
+</view>
+
+<view wx:else>
+  <!-- 范围切换 -->
+  <view class="range-tabs">
+    <view class="range-tab {{range === 'week' ? 'on' : ''}}" data-range="week" bindtap="switchrange">本周</view>
+    <view class="range-tab {{range === 'month' ? 'on' : ''}}" data-range="month" bindtap="switchrange">本月</view>
+  </view>
+
+  <!-- 依从率 + 逐日柱状图 -->
+  <view class="card">
+    <view class="rate-card">
+      <view class="rate-main">
+        <view class="rate-value">
+          <text class="rate-num {{rateClass}}">{{rateText}}</text>
+          <text wx:if="{{hasRate}}" class="rate-unit {{rateClass}}">%</text>
+        </view>
+        <view class="rate-label">依从率</view>
+      </view>
+      <view class="rate-sub">已服 {{taken}} · 漏服 {{missed}}</view>
+    </view>
+
+    <view class="chart-box">
+      <scroll-view class="chart-scroll" scroll-x="{{range === 'month'}}" enable-flex>
+        <view class="chart-bars">
+          <view class="bar-cell" wx:for="{{chart}}" wx:key="key">
+            <view class="bar {{item.barClass}}" style="height: {{item.barH}}rpx"></view>
+            <view class="bar-label">{{item.label}}</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="legend">
+      <view class="legend-item">
+        <view class="legend-dot dot-green"></view>
+        <text>80% 及以上</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot dot-amber"></view>
+        <text>40% 至 79%</text>
+      </view>
+      <view class="legend-item">
+        <view class="legend-dot dot-red"></view>
+        <text>低于 40%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 漏服明细 -->
+  <view class="card">
+    <view class="card-title">漏服明细</view>
+    <view wx:if="{{missedList.length === 0}}" class="hint-sm">范围内没有漏服记录</view>
+    <view wx:for="{{missedList}}" wx:key="id" class="missed-row">
+      <view class="missed-when">{{item.dateText}} {{item.timeText}}</view>
+      <view class="missed-name">{{item.name}}</view>
+    </view>
+  </view>
+
+  <view class="adherence-note">统计口径：本人用药，依从率 = 已服 ÷（已服 + 漏服）</view>
+</view>
+
+</view>

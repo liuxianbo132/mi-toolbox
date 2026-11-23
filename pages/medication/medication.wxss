@@ -1,5 +1,15 @@
 /* 用药 tab：时间线与计划列表；公共类已收编至 app.wxss */
 
+/* 依从性报告入口（右上角文字链接） */
+.adherence-entry {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: var(--space-2) var(--space-3) 0;
+  font-size: var(--font-sm);
+  color: var(--color-primary);
+}
+
 .sec-head {
   display: flex;
   justify-content: space-between;

@@ -106,3 +106,10 @@
 .preference-copy { flex: 1; min-width: 0; }
 .preference-title { font-size: var(--font-md); font-weight: 600; }
 .preference-hint { margin-top: 6rpx; color: var(--color-text-3); font-size: var(--font-xs); line-height: 1.45; }
+
+.export-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

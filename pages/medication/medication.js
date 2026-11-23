@@ -218,6 +218,10 @@ Page({
     this.loadAll(this.data.householdId)
   },
 
+  goadherence() {
+    wx.navigateTo({ url: '/pages/adherence/adherence' })
+  },
+
   goNewPlan() {
     wx.navigateTo({ url: '/pages/plan-form/plan-form' })
   },

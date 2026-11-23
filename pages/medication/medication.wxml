@@ -9,6 +9,8 @@
 <view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
 
 <view wx:else>
+  <view class="adherence-entry" bindtap="goadherence">依从性报告 ›</view>
+
   <!-- 今日时间线 -->
   <view class="card">
     <view class="card-title">今日用药 · {{todayText}}</view>

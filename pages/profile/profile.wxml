@@ -40,6 +40,16 @@
     <switch checked="{{largeText}}" color="#007AFF" bindchange="onLargeTextChange" />
   </view>
 
+  <!-- 数据备份：JSON 完整留档，CSV 供 Excel 查看 -->
+  <view class="card" wx:if="{{household}}">
+    <view class="card-title">数据备份</view>
+    <view class="hint-sm">导出家庭全部数据：JSON 可完整留档，CSV 可用 Excel 打开</view>
+    <view class="export-actions">
+      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
+      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
+    </view>
+  </view>
+
   <!-- 成员管理（ruling 前端清单 #5）：member 退出家庭 / owner 移除成员，owner 不显示退出入口 -->
   <view class="card" wx:if="{{household}}">
     <view class="card-title">家庭成员（{{members.length}}）</view>
