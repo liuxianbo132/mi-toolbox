@@ -51,7 +51,9 @@
     <view class="export-actions">
       <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
       <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
+      <button wx:if="{{lastExportPath}}" class="btn-ghost" disabled="{{exportBusy}}" bindtap="resharelast">重新分享上次文件</button>
     </view>
+    <view class="hint-sm export-hint">导出文件保存在小程序本地，分享取消后仍可重发</view>
   </view>
 
   <!-- 回收站：恢复误删的物品与批次 -->

@@ -150,7 +150,11 @@ async function buildFamilyExport(hid) {
   }
 }
 
-// 写入用户目录后转发到微信会话；所有失败统一以 { error } 返回，不抛出
+// 写入用户目录后转发到微信会话；返回值三态，不抛出：
+//   { ok: true, path }        分享成功
+//   { canceled: true, path }  用户主动取消分享（文件已落盘）
+//   { saved: true, path, error } 已写入但客户端不支持分享
+//   { error: '中文提示' }     写入失败或分享失败
 function writeAndShare(fileName, content) {
   return new Promise(function (resolve) {
     try {
@@ -162,26 +166,35 @@ function writeAndShare(fileName, content) {
         encoding: 'utf8',
         success: function () {
           if (typeof wx.shareFileMessage !== 'function') {
-            resolve({ error: '当前微信版本不支持转发文件' })
+            resolve({ saved: true, path: filePath, error: '当前微信版本不支持分享文件' })
             return
           }
           wx.shareFileMessage({
             filePath: filePath,
             fileName: fileName,
             success: function () {
-              resolve({ filePath: filePath })
+              resolve({ ok: true, path: filePath })
             },
             fail: function (err) {
-              resolve({ error: (err && (err.errMsg || err.errMessage)) || '转发失败' })
+              const msg = (err && (err.errMsg || err.errMessage)) || ''
+              // 用户取消也会走 fail，不能当成导出失败
+              if (msg.toLowerCase().indexOf('cancel') >= 0) {
+                resolve({ canceled: true, path: filePath })
+                return
+              }
+              console.warn('shareFileMessage fail:', msg)
+              resolve({ error: '分享失败，请稍后重试' })
             },
           })
         },
         fail: function (err) {
-          resolve({ error: (err && (err.errMsg || err.message)) || '写入文件失败' })
+          console.warn('writeFile fail:', (err && (err.errMsg || err.message)) || '')
+          resolve({ error: '写入本地文件失败' })
         },
       })
     } catch (e) {
-      resolve({ error: (e && e.message) || '写入文件失败' })
+      console.warn('writeAndShare exception:', (e && e.message) || '')
+      resolve({ error: '写入本地文件失败' })
     }
   })
 }

@@ -215,8 +215,8 @@
 
 .large-text .rate-num { font-size: 110rpx; }
 .large-text .rate-unit { font-size: var(--font-lg); }
-.large-text .rate-label { font-size: var(--font-sm); }
-.large-text .rate-sub { font-size: 26rpx; }
+.large-text .rate-label { font-size: 28rpx; }
+.large-text .rate-sub { font-size: 28rpx; }
 .large-text .bar-label { font-size: 22rpx; }
 .large-text .missed-when { font-size: 28rpx; }
 .large-text .missed-name { font-size: 34rpx; }

@@ -441,3 +441,54 @@ button[size="mini"] {
   font-size: 28rpx;
   line-height: 1.6;
 }
+
+/* ============================================================
+   大字模式补录（2026-11-23）
+   目的：收口后新增的页面与 class 未进入上方枚举，此处只追加新选择器，
+   不改动任何既有规则（保持 11 个已验收页面的效果不变）。
+   分组：① 标题/名称 ② 辅助/说明 ③ 数字/统计 ④ 触控/行高 ⑤ 布局保护。
+   铁律：仅调字号、行距、触控高度与必要内距；不放大图标/进度条/分隔线，
+   不使用 transform 缩放。
+   ============================================================ */
+
+/* ① 标题 / 名称 */
+.large-text .entry-row { font-size: 38rpx; line-height: 1.4; }
+
+/* ② 辅助 / 说明（依从率图例、错误提示、低库存提醒、记录概览与筛选说明） */
+.large-text .legend-item,
+.large-text .err-text,
+.large-text .restock-text,
+.large-text .sum-label,
+.large-text .ratio-label,
+.large-text .summary-hint,
+.large-text .filter-note { font-size: 28rpx; line-height: 1.6; }
+
+/* ③ 数字 / 统计（保持层级同时避免撑破卡片） */
+.large-text .sum-num { font-size: 46rpx; line-height: 1.15; }
+.large-text .ratio-value { font-size: 28rpx; line-height: 1.4; }
+.large-text .stat-num { font-size: 52rpx; line-height: 1.15; }
+
+/* ④ 触控 / 行高 */
+.large-text .missed-row,
+.large-text .trash-row,
+.large-text .trash-entry { min-height: 104rpx; }
+.large-text .range-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+}
+/* 首页 dose-row 页面基础值为 116rpx，高于全局 104rpx，用更高优先级避免大字模式反而变矮 */
+.large-text .row.dose-row { min-height: 124rpx; }
+/* 昵称输入框在页面级固定 64rpx / 26rpx，大字模式下补回触控高度 */
+.large-text .nickname-row .ipt { min-height: 88rpx; font-size: 32rpx; }
+
+/* ⑤ 布局保护（chip 不外扩换行、插画随字微调、柱状图日期不重叠） */
+.large-text .rec-chip { font-size: 26rpx; line-height: 1.4; padding: 10rpx 22rpx; }
+.large-text .item-illu { width: 76rpx; height: 76rpx; }
+.large-text .dose-status { gap: 10rpx; }
+/* 依从率页把 .bar-label 固定在 22rpx，需用更深选择器覆盖，并放宽单格避免日期挤在一起 */
+.large-text .chart-box .bar-label { font-size: 26rpx; line-height: 1.35; margin-top: 8rpx; }
+.large-text .bar-cell { min-width: 72rpx; }

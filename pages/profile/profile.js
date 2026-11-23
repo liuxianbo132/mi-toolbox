@@ -22,7 +22,9 @@ Page({
     loginError: '',
     loginLoading: false,
     largeText: false,
-    exportBusy: false, // 导出防连点
+    exportBusy: false, // 导出/分享防连点
+    lastExportPath: '', // 上次导出文件路径，供取消分享后重发
+    lastExportName: '',
     // V3：家庭内昵称编辑
     nicknameInput: '',
     nicknameBusy: false,
@@ -184,16 +186,81 @@ Page({
       const content = isJson ? JSON.stringify(result.json, null, 2) : result.itemsCsv
       const res = await writeAndShare(fileName, content)
       wx.hideLoading()
-      if (res && res.error) {
-        wx.showToast({ title: res.error, icon: 'none' })
-        return
+      // 记录落盘路径：取消分享或客户端不支持分享时仍可重发
+      if (res && res.path) {
+        this.setData({ lastExportPath: res.path, lastExportName: fileName })
       }
-      wx.showToast({ title: '已生成，请选择发送对象', icon: 'none' })
+      this.handleShareOutcome(res)
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: (e && e.message) || '导出失败', icon: 'none' })
     } finally {
       this.setData({ exportBusy: false })
+    }
+  },
+
+  // 分享结果三分支：成功 / 用户取消 / 真正的失败
+  handleShareOutcome(res) {
+    if (res && res.ok) {
+      wx.showToast({ title: '已发送', icon: 'none' })
+      return
+    }
+    if (res && res.canceled) {
+      wx.showModal({
+        title: '已取消分享',
+        content: '文件已保存在本地，可点「重新分享上次文件」再发一次',
+        showCancel: false,
+        confirmText: '知道了',
+      })
+      return
+    }
+    if (res && res.saved) {
+      wx.showToast({ title: '文件已保存，当前微信版本不支持分享', icon: 'none' })
+      return
+    }
+    wx.showToast({ title: (res && res.error) || '导出失败', icon: 'none' })
+  },
+
+  // 重新分享上次导出的文件，不再重复生成数据
+  resharelast() {
+    if (this.data.exportBusy) return
+    const filePath = this.data.lastExportPath
+    if (!filePath) {
+      wx.showToast({ title: '暂无可分享的文件', icon: 'none' })
+      return
+    }
+    if (typeof wx.shareFileMessage !== 'function') {
+      wx.showToast({ title: '当前微信版本不支持分享文件', icon: 'none' })
+      return
+    }
+    this.setData({ exportBusy: true })
+    wx.showLoading({ title: '分享中…', mask: true })
+    try {
+      wx.shareFileMessage({
+        filePath: filePath,
+        fileName: this.data.lastExportName,
+        success: () => {
+          wx.hideLoading()
+          this.setData({ exportBusy: false })
+          wx.showToast({ title: '已发送', icon: 'none' })
+        },
+        fail: (err) => {
+          wx.hideLoading()
+          this.setData({ exportBusy: false })
+          const msg = (err && (err.errMsg || err.errMessage)) || ''
+          if (msg.toLowerCase().indexOf('cancel') >= 0) {
+            this.handleShareOutcome({ canceled: true })
+            return
+          }
+          console.warn('shareFileMessage fail:', msg)
+          wx.showToast({ title: '分享失败，请稍后重试', icon: 'none' })
+        },
+      })
+    } catch (e) {
+      wx.hideLoading()
+      this.setData({ exportBusy: false })
+      console.warn('shareFileMessage exception:', (e && e.message) || '')
+      wx.showToast({ title: '分享失败，请稍后重试', icon: 'none' })
     }
   },
 
