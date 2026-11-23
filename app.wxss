@@ -349,7 +349,6 @@ button[size="mini"] {
 .large-text .detail-name,
 .large-text .hero-title,
 .large-text .hero-sub,
-.large-text .section-title,
 .large-text .row-name,
 .large-text .row-sub,
 .large-text .quick-label,

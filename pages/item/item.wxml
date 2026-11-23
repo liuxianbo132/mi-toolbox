@@ -31,7 +31,7 @@
         <text class="f-label">品类</text>
         <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{editCategoryIndex}}" bindchange="onEditCategory">
           <view class="ipt cat-picker">
-            <image class="picker-ico" src="/assets/illustrations/{{categoryOptions[editCategoryIndex].value}}.svg" mode="aspectFit" />
+            <image class="picker-ico" src="/assets/illustrations/v2/{{categoryOptions[editCategoryIndex].value}}.png" mode="aspectFit" />
             <text>{{categoryOptions[editCategoryIndex].label}}</text>
           </view>
         </picker>

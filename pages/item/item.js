@@ -1,6 +1,6 @@
 const { cloud } = require('../../utils/cloud')
 const { itemsAccess, batchesAccess, drugLinksAccess, logRecord } = require('../../utils/data-access')
-const { CATEGORIES, categoryLabel, categoryDisplay, categoryIllustration } = require('../../utils/constants')
+const { CATEGORIES, categoryLabel, categoryIllustration } = require('../../utils/constants')
 const { daysUntil, urgencyLevel, effectiveExpiry } = require('../../utils/date')
 const { matchAllergies, hitsText, KIND_LABEL } = require('../../utils/allergy')
 
@@ -112,7 +112,6 @@ Page({
         name: row.name,
         category: row.category,
         categoryLabel: categoryLabel(row.category),
-        categoryDisplay: categoryDisplay(row.category),
         categoryIllu: categoryIllustration(row.category),
         unit: row.unit || '',
         brand: row.brand || '',
