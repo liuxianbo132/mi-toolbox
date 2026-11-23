@@ -3,97 +3,106 @@
 
 <block wx:elif="{{authState === 'signed-out'}}">
   <view class="card login-card">
+    <image class="brand-mark" src="/assets/icons/cat-home.svg" />
     <view class="app-title">小咪工具箱</view>
+    <view class="app-sub">登录后管理家庭物品与用药</view>
     <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
     <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
   </view>
-
   <view class="card preference-card">
     <view class="preference-copy">
       <view class="preference-title">大字模式</view>
       <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
     </view>
-    <switch checked="{{largeText}}" color="#007AFF" bindchange="onLargeTextChange" />
+    <switch checked="{{largeText}}" color="#0062CC" bindchange="onlargetextchange" />
   </view>
 </block>
 
-<view wx:else>
-  <view class="card">
-    <view class="row nickname-row">
-      <text class="label">昵称</text>
-      <input class="ipt" value="{{nicknameInput}}" bindinput="onnicknameinput" maxlength="12" placeholder="设置家庭内昵称" />
-      <button size="mini" class="btn-primary" bindtap="savenickname" disabled="{{nicknameBusy}}">保存</button>
-    </view>
-    <view class="row" wx:if="{{household}}">
-      <text class="label">家庭</text><text>{{household.name}}</text>
-    </view>
-    <view class="row" wx:if="{{household}}">
-      <text class="label">邀请码</text>
-      <text class="code" bindtap="copyInviteCode">{{household.invite_code}}（点按复制）</text>
-    </view>
-    <view class="row" wx:if="{{!household}}">
-      <text class="label">家庭</text><text>未加入，请到「临期看板」创建</text>
+<state-view wx:elif="{{householdError}}" icon="/assets/icons/alertCircle-red.svg" title="家庭信息暂时无法加载" desc="{{householdError}}" action-text="重新加载" bindaction="retryprofile" />
+
+<view wx:else class="page">
+  <view class="card profile-head">
+    <image class="profile-mark" src="/assets/icons/cat-home.svg" />
+    <view class="profile-copy">
+      <view class="profile-title">我的</view>
+      <view class="profile-sub">{{household ? household.name : '尚未加入家庭'}}</view>
     </view>
   </view>
+
+  <state-view wx:if="{{!household}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="创建或加入家庭后，才能与家人共享库存、用药和成员信息" action-text="前往临期看板" bindaction="gohome" />
+
+  <block wx:else>
+    <view class="card">
+      <view class="card-title">家庭信息</view>
+      <view class="row nickname-row">
+        <text class="label">昵称</text>
+        <input class="ipt" value="{{nicknameInput}}" bindinput="onnicknameinput" maxlength="12" placeholder="设置家庭内昵称" />
+        <button size="mini" class="btn-primary" loading="{{nicknameBusy}}" disabled="{{nicknameBusy}}" bindtap="savenickname">保存</button>
+      </view>
+      <view class="row">
+        <text class="label">家庭</text><text>{{household.name}}</text>
+      </view>
+      <button class="copy-code" hover-class="row-hover" bindtap="copyInviteCode">
+        <text>邀请码</text>
+        <text class="code">{{household.invite_code}}</text>
+        <text class="copy-hint">点按复制</text>
+      </button>
+    </view>
+
+    <view class="card">
+      <view class="card-title">家庭成员（{{members.length}}）</view>
+      <view wx:if="{{membersError}}" class="state-inline">
+        <text>成员信息暂时无法加载</text>
+        <button size="mini" class="btn-ghost" bindtap="retrymembers">重试</button>
+      </view>
+      <block wx:else>
+        <view wx:for="{{members}}" wx:for-item="m" wx:key="id" class="member-row">
+          <view class="member-info">
+            <view class="member-name">
+              {{m.nameText}}
+              <text wx:if="{{m.isSelf}}" class="self-tag">我</text>
+            </view>
+            <view class="member-meta">{{m.roleLabel}}{{m.joinedText ? ' · ' + m.joinedText + ' 加入' : ''}}</view>
+          </view>
+          <view class="member-actions">
+            <button wx:if="{{m.isSelf || isOwner}}" size="mini" class="btn-ghost" data-id="{{m.id}}" data-name="{{m.nameText}}" bindtap="goallergy">过敏</button>
+            <button wx:if="{{m.canRemove}}" size="mini" class="btn-ghost" disabled="{{memberBusy}}" data-id="{{m.id}}" bindtap="onRemoveMember">移除</button>
+            <button wx:if="{{m.canLeave}}" size="mini" class="btn-danger" disabled="{{memberBusy}}" bindtap="onLeaveHousehold">退出家庭</button>
+          </view>
+        </view>
+        <view wx:if="{{members.length === 0}}" class="member-empty">暂无成员数据</view>
+      </block>
+    </view>
+  </block>
 
   <view class="card preference-card">
     <view class="preference-copy">
       <view class="preference-title">大字模式</view>
       <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
     </view>
-    <switch checked="{{largeText}}" color="#007AFF" bindchange="onLargeTextChange" />
-  </view>
-
-  <!-- 数据备份：JSON 完整留档，CSV 供 Excel 查看 -->
-  <view class="card" wx:if="{{household}}">
-    <view class="card-title">数据备份</view>
-    <view class="hint-sm">导出家庭全部数据：JSON 可完整留档，CSV 可用 Excel 打开</view>
-    <view class="export-actions">
-      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
-      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
-      <button wx:if="{{lastExportPath}}" class="btn-ghost" disabled="{{exportBusy}}" bindtap="resharelast">重新分享上次文件</button>
-    </view>
-    <view class="hint-sm export-hint">导出文件保存在小程序本地，分享取消后仍可重发</view>
-  </view>
-
-  <!-- 回收站：恢复误删的物品与批次 -->
-  <view class="card trash-entry" bindtap="gotrash">
-    <view class="trash-entry-main">
-      <view class="preference-title">回收站</view>
-      <view class="preference-hint">恢复误删的物品与批次</view>
-    </view>
-    <image class="trash-entry-arrow" src="/assets/icons/chevron.svg" />
-  </view>
-
-  <!-- 成员管理（ruling 前端清单 #5）：member 退出家庭 / owner 移除成员，owner 不显示退出入口 -->
-  <view class="card" wx:if="{{household}}">
-    <view class="card-title">家庭成员（{{members.length}}）</view>
-    <view class="member-list">
-      <view wx:for="{{members}}" wx:for-item="m" wx:key="id" class="member-row">
-        <view class="member-info">
-          <view class="member-name">
-            {{m.nameText}}
-            <text wx:if="{{m.isSelf}}" class="self-tag">我</text>
-          </view>
-          <view class="member-meta">{{m.roleLabel}}{{m.joinedText ? ' · ' + m.joinedText + ' 加入' : ''}}</view>
-        </view>
-        <view class="member-actions">
-          <button wx:if="{{m.isSelf || isOwner}}" size="mini" class="btn-ghost" data-id="{{m.id}}" data-name="{{m.nameText}}" catchtap="goAllergy">过敏</button>
-          <button wx:if="{{m.canRemove}}" size="mini" class="btn-warn" disabled="{{memberBusy}}" data-id="{{m.id}}" bindtap="onRemoveMember">移除</button>
-          <button wx:if="{{m.canLeave}}" size="mini" class="btn-danger" disabled="{{memberBusy}}" bindtap="onLeaveHousehold">退出家庭</button>
-        </view>
-      </view>
-      <view wx:if="{{members.length === 0}}" class="member-empty">暂无成员数据</view>
-    </view>
-  </view>
-
-  <view class="card entry-row" bindtap="gorecords">
-    <text>操作记录</text>
-    <text class="entry-arrow">›</text>
+    <switch checked="{{largeText}}" color="#0062CC" bindchange="onlargetextchange" />
   </view>
 
   <view class="card">
-    <button class="btn-danger" bindtap="onSignOut">退出登录</button>
+    <view class="card-title">数据与管理</view>
+    <view wx:if="{{household}}" class="export-actions">
+      <button class="btn-ghost" loading="{{exportBusy}}" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
+      <button class="btn-ghost" loading="{{exportBusy}}" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
+    </view>
+    <view wx:if="{{lastExportPath}}" class="export-actions">
+      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="resharelast">重新分享上次文件</button>
+    </view>
+    <view class="hint-sm export-hint">JSON 完整留档，CSV 可用 Excel 打开；分享取消后仍可重发</view>
+    <view class="entry-row" hover-class="row-hover" bindtap="gotrash">
+      <text>回收站</text><text class="entry-arrow">›</text>
+    </view>
+    <view class="entry-row" hover-class="row-hover" bindtap="gorecords">
+      <text>操作记录</text><text class="entry-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="card signout-card">
+    <button class="btn-danger" loading="{{signOutBusy}}" disabled="{{signOutBusy}}" bindtap="onsignout">退出登录</button>
   </view>
 </view>
 </view>

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "临期看板"
+  "navigationBarTitleText": "临期看板",
+  "usingComponents": {
+    "state-view": "/components/state-view/state-view"
+  }
 }

@@ -3,10 +3,12 @@
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
   <view class="app-title">小咪工具箱</view>
-  <view class="app-sub">家庭物品保质期管理</view>
+  <view class="app-sub">家庭物品与用药管理</view>
   <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
   <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
 </view>
+
+<state-view wx:elif="{{householdError}}" icon="/assets/icons/alertCircle-red.svg" title="家庭信息暂时无法加载" desc="{{householdError}}" action-text="重新加载" bindaction="retryhousehold" />
 
 <view wx:elif="{{!household}}" class="card">
   <view class="card-title">先创建或加入一个家庭</view>
@@ -22,71 +24,73 @@
 </view>
 
 <view wx:else class="page">
-  <image class="cat-background" src="/assets/backgrounds/cat-pattern.svg" mode="scaleToFill" />
+  <image class="cat-background" src="/assets/backgrounds/cat-pattern.svg" mode="aspectFill" />
 
-  <!-- 顶部家庭标识 -->
-  <view class="topbar" bindtap="goProfile">
+  <view class="topbar" bindtap="goProfile" hover-class="row-hover">
     <view class="brand">
       <view class="brand-badge">
-        <image class="brand-ico" src="/assets/icons/home-white.svg" />
+        <image class="brand-ico" src="/assets/icons/cat-home.svg" />
       </view>
       <text class="brand-name">{{household.name}}</text>
       <image class="brand-arrow" src="/assets/icons/chevron.svg" />
     </view>
   </view>
 
-  <!-- 问候 -->
   <view class="hero">
-    <view class="hero-title">{{greeting}}，家人！<text class="hero-wave"> 👋</text></view>
-    <view class="hero-sub">让家庭生活更安心</view>
+    <view class="hero-title">今日概览</view>
+    <view class="hero-sub">今天要处理的物品与用药，一眼看清</view>
   </view>
 
-  <!-- 统计三卡（实心圆图标 + 黑色数字 + 彩色标签，对齐参考图） -->
   <view class="stats-card">
     <view class="stat-cell">
       <image class="stat-solid" src="/assets/icons/solid-red.svg" />
-      <view class="stat-num">{{stats.expired}}</view>
+      <view class="stat-num">{{urgentState === 'ready' ? stats.expired : '—'}}</view>
       <view class="stat-label label-red">已过期</view>
     </view>
     <view class="stat-cell">
       <image class="stat-solid" src="/assets/icons/solid-amber.svg" />
-      <view class="stat-num">{{stats.danger + stats.warn}}</view>
-      <view class="stat-label label-amber">将临期</view>
+      <view class="stat-num">{{urgentState === 'ready' ? stats.danger + stats.warn : '—'}}</view>
+      <view class="stat-label label-amber">需留意</view>
     </view>
     <view class="stat-cell">
       <image class="stat-solid" src="/assets/icons/solid-green.svg" />
-      <view class="stat-num">{{stats.safe}}</view>
-      <view class="stat-label label-green">很安全</view>
+      <view class="stat-num">{{urgentState === 'ready' ? stats.safe : '—'}}</view>
+      <view class="stat-label label-green">安全</view>
     </view>
   </view>
+  <view wx:if="{{urgentLimited}}" class="data-note">库存较多，当前概览基于最近 50 个在库批次</view>
 
-  <!-- 漏服提醒 -->
-  <view wx:if="{{missedToday > 0}}" class="alert-bar" bindtap="goMedication">
+  <view wx:if="{{missedToday > 0}}" class="alert-bar" bindtap="goMedication" hover-class="row-hover">
     <image class="alert-ico" src="/assets/icons/bell-red.svg" />
-    <text class="alert-text">今日漏服 {{missedToday}} 次，点击查看用药</text>
+    <text class="alert-text">今日漏服 {{missedToday}} 次</text>
+    <text class="alert-action">查看用药</text>
     <image class="alert-arrow" src="/assets/icons/chevron.svg" />
   </view>
 
-  <!-- 临期物品 -->
   <view class="section-card">
     <view class="section-head">
       <view class="section-title">
         <image class="section-ico" src="/assets/icons/bell.svg" />
         <text>临期物品</text>
       </view>
-      <view class="section-more" bindtap="goInventory">
+      <view class="section-more" hover-class="row-hover" bindtap="goInventory">
         <text>查看全部</text>
         <image class="more-arrow" src="/assets/icons/chevron.svg" />
       </view>
     </view>
 
-    <block wx:for="{{zones}}" wx:for-item="z" wx:key="key">
-      <view wx:if="{{z.items.length > 0}}" class="zone">
+    <view wx:if="{{urgentState === 'loading'}}" class="empty-inline">正在汇总临期物品…</view>
+    <view wx:elif="{{urgentState === 'error'}}" class="state-inline">
+      <text>临期物品暂时无法加载</text>
+      <button size="mini" class="btn-ghost" bindtap="retryurgent">重试</button>
+    </view>
+    <block wx:elif="{{urgentState === 'ready'}}">
+      <view wx:for="{{zones}}" wx:for-item="z" wx:key="key" wx:if="{{z.items.length > 0}}" class="zone">
         <view class="zone-head">
           <view class="zone-dot {{z.key === 'warn' ? 'dot-amber' : 'dot-red'}}"></view>
           <text class="zone-title">{{z.title}}（{{z.items.length}}）</text>
         </view>
-        <view wx:for="{{z.items}}" wx:for-item="b" wx:key="id" class="row" data-id="{{b.item_id}}" bindtap="goDetail">
+        <view wx:for="{{z.items}}" wx:for-item="b" wx:key="id" class="row" hover-class="row-hover" data-id="{{b.item_id}}" bindtap="goDetail">
           <image class="row-illu" src="{{b.illu}}" mode="aspectFit" />
           <view class="row-main">
             <view class="row-name">{{b.name}}</view>
@@ -99,32 +103,34 @@
           <image class="row-arrow" src="/assets/icons/chevron.svg" />
         </view>
       </view>
-    </block>
 
-    <view wx:if="{{zones[0].items.length === 0 && zones[1].items.length === 0 && zones[2].items.length === 0}}" class="empty">
-      <image class="empty-illu" src="/assets/illustrations/v2/empty.png" mode="aspectFit" />
-      <view class="empty-text">暂无临期物品</view>
-      <view class="empty-hint">去「库存」添加物品吧</view>
-    </view>
+      <view wx:if="{{zones[0].items.length === 0 && zones[1].items.length === 0 && zones[2].items.length === 0}}" class="empty">
+        <image class="empty-illu" src="/assets/illustrations/v2/empty.png" mode="aspectFit" />
+        <view class="empty-text">暂无临期物品</view>
+        <view class="empty-hint">可以在库存页查看全部物品</view>
+      </view>
+    </block>
   </view>
 
-  <!-- 今日用药 -->
   <view class="section-card">
     <view class="section-head">
       <view class="section-title">
         <image class="section-ico" src="/assets/icons/pill.svg" />
         <text>今日用药</text>
       </view>
-      <view class="section-more" bindtap="goMedication">
+      <view class="section-more" hover-class="row-hover" bindtap="goMedication">
         <text>查看全部</text>
         <image class="more-arrow" src="/assets/icons/chevron.svg" />
       </view>
     </view>
 
     <view wx:if="{{medicationSummaryState === 'loading'}}" class="empty-inline">正在加载今日用药…</view>
-    <view wx:elif="{{medicationSummaryState === 'error'}}" class="empty-inline">今日用药暂时无法加载，请点击查看用药</view>
+    <view wx:elif="{{medicationSummaryState === 'error'}}" class="state-inline">
+      <text>今日用药暂时无法加载</text>
+      <button size="mini" class="btn-ghost" bindtap="retrymedication">重试</button>
+    </view>
     <view wx:elif="{{todayDoses.length === 0}}" class="empty-inline">今日暂无用药安排</view>
-    <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row dose-row {{index === 0 ? 'dose-featured' : ''}}" bindtap="goMedication">
+    <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row dose-row {{index === 0 ? 'dose-featured' : ''}}" hover-class="row-hover" bindtap="goMedication">
       <image class="row-illu" src="{{d.illu}}" mode="aspectFit" />
       <view class="row-main">
         <view class="row-name">{{d.name}}</view>
@@ -140,36 +146,33 @@
     <view wx:if="{{streakDays > 0}}" class="streak">
       <image class="streak-ico" src="/assets/icons/checkCircle-green.svg" />
       <text class="streak-text">连续打卡 {{streakDays}} 天</text>
-      <text class="streak-hint">继续保持！</text>
+      <text class="streak-hint">继续保持</text>
     </view>
   </view>
 
-  <!-- 低库存提醒 -->
-  <view wx:if="{{restockCount > 0}}" class="alert-restock" bindtap="goInventory">
+  <view wx:if="{{restockCount > 0}}" class="alert-restock" bindtap="goInventory" hover-class="row-hover">
     <image class="restock-ico" src="/assets/icons/alertCircle.svg" />
-    <text class="restock-text">{{restockCount}} 件物品已用完，待补货</text>
+    <text class="restock-text">{{restockCount}} 件物品待补货</text>
     <image class="restock-arrow" src="/assets/icons/chevron.svg" />
   </view>
 
-  <!-- 快捷入口 -->
   <view class="quick">
-    <view class="quick-item" bindtap="goScan">
+    <view class="quick-item" hover-class="row-hover" bindtap="goScan">
       <view class="quick-badge"><image class="quick-ico" src="/assets/icons/scan.svg" /></view>
       <text class="quick-label">扫码录入</text>
     </view>
-    <view class="quick-item" bindtap="goAdd">
-      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/plusCircle-green.svg" /></view>
+    <view class="quick-item" hover-class="row-hover" bindtap="goAdd">
+      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/plusCircle.svg" /></view>
       <text class="quick-label">添加物品</text>
     </view>
-    <view class="quick-item" bindtap="goPlan">
-      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/calendar-amber.svg" /></view>
+    <view class="quick-item" hover-class="row-hover" bindtap="goPlan">
+      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/calendar.svg" /></view>
       <text class="quick-label">用药计划</text>
     </view>
-    <view class="quick-item" bindtap="goLocations">
-      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/location-purple.svg" /></view>
+    <view class="quick-item" hover-class="row-hover" bindtap="goLocations">
+      <view class="quick-badge"><image class="quick-ico" src="/assets/icons/location.svg" /></view>
       <text class="quick-label">存放位置</text>
     </view>
   </view>
-
 </view>
 </view>

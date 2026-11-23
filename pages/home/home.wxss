@@ -1,221 +1,177 @@
-/* 首页 · Apple iOS 风格（参考「小咪家」设计稿） */
+/* 首页 · 家庭今日概览（Unslop 精修版：安静的蓝白界面 + 三色业务状态） */
 
 .page {
-  padding-bottom: 40rpx;
-  background: linear-gradient(180deg, #EAF2FE 0, #F2F2F7 360rpx) no-repeat;
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 48rpx;
+  background: var(--color-bg);
+  overflow: hidden;
 }
 
-/* ===== 顶部家庭标识 ===== */
-
-.topbar {
-  padding: 24rpx 32rpx 0;
+.cat-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 640rpx;
+  z-index: 0;
+  opacity: 0.42;
+  pointer-events: none;
 }
 
+.topbar,
+.hero,
+.stats-card,
+.data-note,
+.alert-bar,
+.alert-restock,
+.section-card,
+.quick {
+  position: relative;
+  z-index: 1;
+}
+
+/* 家庭标识 */
+.topbar { padding: 24rpx 32rpx 0; }
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 16rpx;
   max-width: 100%;
 }
-
 .brand-badge {
-  width: 68rpx;
-  height: 68rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 20rpx;
-  background: #E9F2FF;
+  background: var(--color-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
-
-.brand-ico {
-  width: 40rpx;
-  height: 40rpx;
-}
-
+.brand-ico { width: 44rpx; height: 44rpx; }
 .brand-name {
   font-size: 36rpx;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.3;
   color: var(--color-text-1);
-  letter-spacing: -0.3rpx;
   min-width: 0;
   word-break: break-all;
 }
-
 .brand-arrow {
   width: 22rpx;
   height: 22rpx;
-  opacity: 0.35;
+  opacity: 0.4;
   transform: rotate(90deg);
-  margin-left: 2rpx;
+  flex-shrink: 0;
 }
 
-/* ===== 问候 ===== */
-
-.hero {
-  padding: 20rpx 32rpx 28rpx;
-}
-
+/* 今日概览 */
+.hero { padding: 28rpx 32rpx 32rpx; }
 .hero-title {
-  font-size: 46rpx;
-  font-weight: 700;
-  letter-spacing: -0.6rpx;
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.25;
   color: var(--color-text-1);
 }
-
 .hero-sub {
   margin-top: 8rpx;
   font-size: 26rpx;
-  color: var(--color-text-3);
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 
-/* ===== 统计三卡 ===== */
-
+/* 三态统计 */
 .stats-card {
   display: flex;
   margin: 0 24rpx;
-  padding: 30rpx 8rpx 26rpx;
+  padding: 28rpx 8rpx;
   background: var(--color-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-
 .stat-cell {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-
-.stat-badge {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.badge-red {
-  background: #FFEAE9;
-}
-
-.badge-amber {
-  background: #FFF2E0;
-}
-
-.badge-green {
-  background: #E6F7EB;
-}
-
-.stat-ico {
-  width: 40rpx;
-  height: 40rpx;
-}
-
+.stat-cell + .stat-cell { border-left: 1rpx solid var(--color-border); }
+.stat-solid { width: 72rpx; height: 72rpx; }
 .stat-num {
   margin-top: 12rpx;
   font-size: 44rpx;
-  font-weight: 700;
-  line-height: 1.1;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--color-text-1);
 }
-
-.stat-num.red {
-  color: var(--color-red);
-}
-
-.stat-num.amber {
-  color: var(--color-amber);
-}
-
-.stat-num.green {
-  color: var(--color-green);
-}
-
 .stat-label {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  color: var(--color-text-3);
-}
-
-/* ===== 漏服提醒条 ===== */
-
-.alert-bar {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin: 16rpx 24rpx 0;
-  padding: 20rpx 24rpx;
-  background: var(--color-red-bg);
-  border-radius: var(--radius-md);
-}
-
-.alert-ico {
-  width: 34rpx;
-  height: 34rpx;
-}
-
-.alert-text {
-  flex: 1;
+  margin-top: 8rpx;
   font-size: 26rpx;
-  color: var(--color-red);
-  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-2);
+}
+.label-red { color: var(--color-red); }
+.label-amber { color: var(--color-amber); }
+.label-green { color: var(--color-green); }
+.data-note {
+  margin: 12rpx 32rpx 0;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 
-.alert-arrow {
-  width: 20rpx;
-  height: 20rpx;
-  opacity: 0.4;
-}
-
-/* ===== 低库存提醒条 ===== */
-
+/* 提醒条 */
+.alert-bar,
 .alert-restock {
   display: flex;
   align-items: center;
   gap: 12rpx;
+  min-height: 88rpx;
   margin: 16rpx 24rpx 0;
-  padding: 20rpx 24rpx;
-  background: #FFF2E0;
+  padding: 16rpx 24rpx;
   border-radius: var(--radius-md);
 }
-
-.restock-ico {
-  width: 34rpx;
-  height: 34rpx;
-}
-
+.alert-bar { background: var(--color-red-bg); }
+.alert-restock { background: var(--color-amber-bg); }
+.alert-ico,
+.restock-ico { width: 36rpx; height: 36rpx; flex-shrink: 0; }
+.alert-text,
 .restock-text {
   flex: 1;
   font-size: 26rpx;
-  color: var(--color-amber);
   font-weight: 500;
+  line-height: 1.4;
 }
-
+.alert-text { color: var(--color-red); }
+.restock-text { color: var(--color-amber); }
+.alert-action {
+  font-size: 24rpx;
+  color: var(--color-red);
+  white-space: nowrap;
+}
+.alert-arrow,
 .restock-arrow {
   width: 20rpx;
   height: 20rpx;
-  opacity: 0.4;
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
-/* ===== 分区卡片（临期物品 / 今日用药） ===== */
-
+/* 分组卡片 */
 .section-card {
-  margin: 16rpx 24rpx;
+  margin: 20rpx 24rpx;
   padding-bottom: 8rpx;
   background: var(--color-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  overflow: hidden;
 }
-
 .section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx 28rpx 12rpx;
+  padding: 20rpx 24rpx 12rpx;
 }
-
 .section-title {
   display: flex;
   align-items: center;
@@ -224,352 +180,201 @@
   font-weight: 600;
   color: var(--color-text-1);
 }
-
-.section-ico {
-  width: 36rpx;
-  height: 36rpx;
-}
-
+.section-ico { width: 40rpx; height: 40rpx; }
 .section-more {
   display: flex;
   align-items: center;
-  gap: 4rpx;
+  gap: 6rpx;
+  min-height: 88rpx;
+  padding: 0 0 0 24rpx;
+  margin: -20rpx 0;
   font-size: 26rpx;
-  color: var(--color-text-3);
+  color: var(--color-text-2);
 }
+.more-arrow { width: 20rpx; height: 20rpx; opacity: 0.5; }
 
-.more-arrow {
-  width: 20rpx;
-  height: 20rpx;
-  opacity: 0.4;
-}
-
-.zone {
-  margin-top: 4rpx;
-}
-
+.zone { margin-top: 4rpx; }
 .zone-head {
   display: flex;
   align-items: center;
-  padding: 12rpx 28rpx 2rpx;
+  /* 覆盖 app.wxss 全局 .zone-head 的 space-between，避免圆点与标题分离 */
+  justify-content: flex-start;
+  padding: 12rpx 28rpx 4rpx;
 }
-
 .zone-dot {
-  width: 10rpx;
-  height: 10rpx;
+  width: 12rpx;
+  height: 12rpx;
   border-radius: 50%;
-  margin-right: 10rpx;
+  margin-right: 12rpx;
 }
-
-.dot-red {
-  background: #FF3B30;
-}
-
-.dot-amber {
-  background: #FF9500;
-}
-
+.dot-red { background: var(--color-red); }
+.dot-amber { background: var(--color-amber); }
 .zone-title {
   font-size: 24rpx;
-  font-weight: 600;
-  color: var(--color-text-3);
-  letter-spacing: 0.4rpx;
+  font-weight: 500;
+  color: var(--color-text-2);
 }
 
-/* ===== 列表行 ===== */
-
+/* 列表行 */
 .row {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  padding: 20rpx 28rpx;
+  min-height: 112rpx;
+  padding: 16rpx 28rpx;
 }
-
-.row + .row {
-  border-top: 1rpx solid #F5F5F7;
-}
-
+.row + .row { border-top: 1rpx solid var(--color-border); }
 .row-illu {
   width: 76rpx;
   height: 76rpx;
-  border-radius: 20rpx;
+  padding: 8rpx;
+  box-sizing: border-box;
+  border-radius: 18rpx;
+  background: #F3F6FC;
   flex-shrink: 0;
 }
-
-.row-main {
-  flex: 1;
-  min-width: 0;
-}
-
+.row-main { flex: 1; min-width: 0; }
 .row-name {
   font-size: 30rpx;
   font-weight: 500;
+  line-height: 1.4;
   color: var(--color-text-1);
   word-break: break-all;
 }
-
 .row-sub {
   margin-top: 4rpx;
   font-size: 24rpx;
-  color: var(--color-text-3);
+  line-height: 1.45;
+  color: var(--color-text-2);
 }
-
-/* 剩余保质期进度条（仅有生产日期且未开封的批次显示） */
 .progress {
   margin-top: 8rpx;
   height: 8rpx;
-  background: #F0F0F3;
+  background: #E9EDF3;
   border-radius: 4rpx;
   overflow: hidden;
 }
-
-.progress-fill {
-  height: 100%;
-  border-radius: 4rpx;
-}
-
-.fill-red {
-  background: linear-gradient(90deg, #FF8A80, #FF3B30);
-}
-
-.fill-amber {
-  background: linear-gradient(90deg, #FFD08A, #FF9500);
-}
-
+.progress-fill { height: 100%; border-radius: 4rpx; }
+.fill-red { background: var(--color-red); }
+.fill-amber { background: var(--color-amber); }
 .row-tag {
   flex-shrink: 0;
-  font-size: 22rpx;
-  padding: 4rpx 14rpx;
+  padding: 6rpx 16rpx;
   border-radius: var(--radius-sm);
+  font-size: 24rpx;
   font-weight: 500;
 }
+.row-arrow { width: 22rpx; height: 22rpx; opacity: 0.4; flex-shrink: 0; }
 
-.row-arrow {
-  width: 22rpx;
-  height: 22rpx;
-  opacity: 0.28;
-  flex-shrink: 0;
-}
-
-/* ===== 空态 ===== */
-
+/* 空态与状态 */
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 36rpx 0 48rpx;
+  padding: 32rpx 0 40rpx;
 }
-
-.empty-illu {
-  width: 152rpx;
-  height: 152rpx;
-  opacity: 0.9;
-}
-
+.empty-illu { width: 140rpx; height: 140rpx; }
 .empty-text {
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   font-size: 28rpx;
-  color: var(--color-text-2);
+  color: var(--color-text-1);
 }
-
 .empty-hint {
   margin-top: 6rpx;
   font-size: 24rpx;
-  color: var(--color-text-3);
+  color: var(--color-text-2);
 }
-
 .empty-inline {
-  padding: 24rpx 28rpx 28rpx;
+  padding: 28rpx;
   font-size: 26rpx;
-  color: var(--color-text-3);
+  line-height: 1.6;
+  color: var(--color-text-2);
+}
+.state-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 20rpx 28rpx 28rpx;
+  font-size: 26rpx;
+  color: var(--color-text-2);
+}
+.state-card {
+  margin-top: 160rpx;
+  text-align: center;
+}
+.state-icon { width: 64rpx; height: 64rpx; }
+.state-title {
+  margin-top: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+.state-desc {
+  margin: 8rpx 0 24rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--color-text-2);
 }
 
-/* ===== 连续打卡 ===== */
-
+/* 今日用药 */
+.dose-row { min-height: 116rpx; }
+.dose-featured { background: var(--color-primary-light); }
+.dose-featured + .dose-row { border-top: 0; }
+.dose-featured .row-illu { background: rgba(255, 255, 255, 0.72); }
+.dose-status { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; }
+.dose-time { font-size: 24rpx; color: var(--color-text-2); }
 .streak {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin: 10rpx 28rpx 20rpx;
-  padding: 18rpx 24rpx;
-  background: #FFF6E8;
-  border-radius: 16rpx;
+  margin: 8rpx 24rpx 20rpx;
+  padding: 16rpx 24rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-amber-bg);
 }
+.streak-ico { width: 32rpx; height: 32rpx; }
+.streak-text { font-size: 26rpx; font-weight: 500; color: var(--color-amber); }
+.streak-hint { margin-left: auto; font-size: 24rpx; color: var(--color-text-2); }
 
-.streak-ico {
-  width: 32rpx;
-  height: 32rpx;
-}
-
-.streak-text {
-  font-size: 26rpx;
-  font-weight: 500;
-  color: var(--color-amber);
-}
-
-.streak-hint {
-  margin-left: auto;
-  font-size: 24rpx;
-  color: var(--color-text-3);
-}
-
-/* ===== 快捷入口 ===== */
-
+/* 快捷入口：一个安静的容器，不用四个独立悬浮卡 */
 .quick {
   display: flex;
-  gap: 16rpx;
-  margin: 16rpx 24rpx 40rpx;
+  gap: 8rpx;
+  margin: 20rpx 24rpx 40rpx;
+  padding: 16rpx 8rpx;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
-
 .quick-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24rpx 8rpx;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  justify-content: center;
+  min-height: 136rpx;
+  padding: 12rpx 4rpx;
+  border-radius: var(--radius-md);
 }
-
 .quick-badge {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 22rpx;
-  background: #F4F6FA;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 20rpx;
+  background: var(--color-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.quick-ico {
-  width: 40rpx;
-  height: 40rpx;
-}
-
+.quick-ico { width: 40rpx; height: 40rpx; }
 .quick-label {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   font-size: 24rpx;
+  line-height: 1.3;
   color: var(--color-text-2);
-}
-
-/* ===== 登录与家庭表单（沿用全局风格） ===== */
-
-.login-card {
-  margin-top: 200rpx;
   text-align: center;
 }
 
-.login-btn {
-  width: 80%;
-}
-
-.divider {
-  text-align: center;
-  color: var(--color-text-3);
-  font-size: 24rpx;
-  margin: 20rpx 0;
-}
-
-/* 首页视觉重构：轻蓝渐变背景、白色分组卡片与清晰状态层级 */
-.page {
-  position: relative;
-  min-height: 100vh;
-  padding-bottom: 48rpx;
-  background: linear-gradient(180deg, #E7F0FF 0, #F2F2F7 520rpx) no-repeat;
-}
-
-.cat-background { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
-.topbar, .hero, .stats-card, .alert-bar, .alert-restock, .section-card, .quick { position: relative; z-index: 1; }
-
-.topbar { padding: 28rpx 36rpx 0; }
-.brand { gap: 18rpx; }
-.brand-badge {
-  width: 76rpx;
-  height: 76rpx;
-  border-radius: 24rpx;
-  background: linear-gradient(145deg, #4DA8FF, #007AFF);
-  box-shadow: 0 6rpx 16rpx rgba(0, 122, 255, 0.25);
-}
-.brand-ico { width: 42rpx; height: 42rpx; }
-.brand-name { font-size: 38rpx; letter-spacing: -0.5rpx; }
-.hero { padding: 26rpx 36rpx 34rpx; }
-.hero-title { font-size: 46rpx; line-height: 1.25; }
-.hero-wave { font-size: 38rpx; }
-.hero-sub { margin-top: 10rpx; font-size: 28rpx; }
-
-.stats-card {
-  margin: 0 28rpx 24rpx;
-  padding: 32rpx 8rpx 30rpx;
-  border-radius: 32rpx;
-  box-shadow: 0 10rpx 32rpx rgba(49, 83, 140, 0.07);
-}
-.stat-cell + .stat-cell { border-left: 1rpx solid var(--color-border); }
-.stat-badge { width: 76rpx; height: 76rpx; }
-/* 实心圆图标（参考图：彩色圆底 + 白色符号） */
-.stat-solid { width: 84rpx; height: 84rpx; }
-.stat-num { font-size: 48rpx; color: var(--color-text-1); }
-.stat-label { font-size: 26rpx; font-weight: 500; color: var(--color-text-3); }
-.stat-label.label-red { color: var(--color-red); }
-.stat-label.label-amber { color: var(--color-amber); }
-.stat-label.label-green { color: var(--color-green); }
-
-.alert-bar {
-  margin: 0 28rpx 20rpx;
-  min-height: 72rpx;
-  border-radius: 22rpx;
-}
-.section-card {
-  margin: 20rpx 28rpx;
-  padding-bottom: 10rpx;
-  border-radius: 32rpx;
-  box-shadow: 0 10rpx 32rpx rgba(49, 83, 140, 0.06);
-}
-.section-head { padding: 30rpx 30rpx 22rpx; }
-.section-title { font-size: 34rpx; }
-.section-ico { width: 42rpx; height: 42rpx; }
-.section-more { font-size: 27rpx; }
-.zone-head { padding: 18rpx 30rpx 6rpx; }
-.zone-title { font-size: 25rpx; }
-.row { padding: 22rpx 30rpx; gap: 22rpx; }
-.row + .row { border-top-color: #EEF0F5; }
-.row-illu {
-  width: 92rpx;
-  height: 92rpx;
-  padding: 8rpx;
-  box-sizing: border-box;
-  border-radius: 24rpx;
-  background: #F3F6FC;
-}
-.row-name { font-size: 32rpx; font-weight: 600; }
-.row-sub { font-size: 25rpx; }
-.row-tag { padding: 7rpx 18rpx; border-radius: 28rpx; font-size: 23rpx; }
-.dose-row { min-height: 116rpx; }
-.dose-featured {
-  margin: 6rpx 18rpx 14rpx;
-  padding: 22rpx;
-  border: 0;
-  border-radius: 28rpx;
-  background: linear-gradient(110deg, #F0F6FF, #E8F1FF);
-}
-.dose-featured + .dose-row { border-top: 0; }
-.dose-featured .row-illu { width: 108rpx; height: 108rpx; background: rgba(255,255,255,0.72); }
-.dose-status { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; }
-.dose-time { color: var(--color-text-3); font-size: 23rpx; }
-.dose-featured .dose-status .row-tag { font-size: 25rpx; }
-.empty-inline { padding: 30rpx; }
-.streak {
-  margin: 8rpx 24rpx 20rpx;
-  padding: 20rpx 22rpx;
-  border-radius: 24rpx;
-  background: #FFF6E8;
-}
-.quick { gap: 14rpx; margin: 22rpx 28rpx 40rpx; }
-.quick-item {
-  min-height: 148rpx;
-  padding: 22rpx 6rpx;
-  border-radius: 30rpx;
-  box-shadow: 0 8rpx 28rpx rgba(49, 83, 140, 0.06);
-}
-.quick-badge { width: 76rpx; height: 76rpx; border-radius: 26rpx; }
-.quick-label { margin-top: 14rpx; font-size: 23rpx; text-align: center; }
+/* 登录与家庭表单（沿用全局设计令牌） */
+.login-card { margin-top: 160rpx; text-align: center; }
+.login-btn { width: 80%; }
+.divider { margin: 20rpx 0; font-size: 24rpx; color: var(--color-text-2); }

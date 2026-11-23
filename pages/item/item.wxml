@@ -1,24 +1,28 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{loading}}" class="center">加载中…</view>
+<state-view wx:if="{{loadState === 'loading'}}" title="正在加载物品" desc="整理批次与保质期信息，请稍候" compact="{{true}}" />
 
-<view wx:elif="{{!item}}" class="card center-hint">物品不存在或已被删除</view>
+<state-view wx:elif="{{loadState === 'error'}}" icon="/assets/icons/alertCircle-red.svg" title="物品信息暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
 
-<view wx:else>
-  <!-- 物品信息 / 编辑 -->
-  <view class="card">
+<state-view wx:elif="{{loadState === 'not-found' || !item}}" icon="/assets/icons/box.svg" title="物品不存在或已被移入回收站" desc="可以返回库存页查看其他物品" />
+
+<view wx:else class="page">
+  <view class="card detail-card">
     <view wx:if="{{!editing}}">
       <view class="detail-head">
-        <view class="detail-name">{{item.name}}</view>
-        <button size="mini" class="btn-ghost" bindtap="startEdit">编辑</button>
-      </view>
-      <view class="detail-meta">
-        <view class="cat-chip">
-          <image class="chip-ico" src="{{item.categoryIllu}}" mode="aspectFit" />
-          <text>{{item.categoryLabel}}</text>
+        <image class="detail-illu" src="{{item.categoryIllu}}" mode="aspectFit" />
+        <view class="detail-copy">
+          <view class="detail-name">{{item.name}}</view>
+          <view class="detail-meta">
+            <view class="cat-chip">
+              <image class="chip-ico" src="{{item.categoryIllu}}" mode="aspectFit" />
+              <text>{{item.categoryLabel}}</text>
+            </view>
+            <text wx:if="{{item.brand}}">{{item.brand}}</text>
+            <text wx:if="{{item.spec}}">{{item.spec}}</text>
+            <text wx:if="{{item.unit}}">单位：{{item.unit}}</text>
+          </view>
         </view>
-        <text wx:if="{{item.brand}}">品牌：{{item.brand}}</text>
-        <text wx:if="{{item.spec}}">规格：{{item.spec}}</text>
-        <text wx:if="{{item.unit}}">单位：{{item.unit}}</text>
+        <button size="mini" class="btn-ghost" bindtap="startEdit">编辑</button>
       </view>
     </view>
     <view wx:else>
@@ -55,14 +59,18 @@
     </view>
   </view>
 
-  <!-- 用药计划（M2a，仅药品） -->
   <view class="card" wx:if="{{item.category === 'medicine'}}">
     <view class="sec-head">
       <view class="card-title">用药计划（{{medPlans.length}}）</view>
-      <button size="mini" class="btn-primary" bindtap="goNewPlan">＋ 新建</button>
+      <button size="mini" class="btn-primary" bindtap="goNewPlan">新建计划</button>
     </view>
-    <view wx:if="{{medPlans.length === 0}}" class="hint-sm">暂无用药计划</view>
-    <view wx:for="{{medPlans}}" wx:for-item="p" wx:key="id" class="plan-line" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goPlanEdit">
+    <view wx:if="{{medPlansState === 'loading'}}" class="hint-sm">正在加载用药计划…</view>
+    <view wx:elif="{{medPlansState === 'error'}}" class="state-inline">
+      <text>用药计划加载失败</text>
+      <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
+    </view>
+    <view wx:elif="{{medPlans.length === 0}}" class="hint-sm">暂无用药计划</view>
+    <view wx:for="{{medPlans}}" wx:for-item="p" wx:key="id" class="plan-line" hover-class="row-hover" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goPlanEdit">
       <view class="plan-line-main">
         <view class="plan-line-title">{{p.timesText}} · {{p.freqLabel}}</view>
         <view class="plan-line-meta">{{p.memberName}} · {{p.courseText}}</view>
@@ -71,35 +79,39 @@
     </view>
   </view>
 
-  <!-- 过敏关联与冲突（M2b，仅药品） -->
   <view class="card" wx:if="{{item.category === 'medicine'}}">
     <view class="card-title">过敏关联（{{medLinks.length}}）</view>
-    <view wx:if="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
-      <text>你的过敏档案命中：{{hitsSummary}}</text>
+    <view wx:if="{{allergyState === 'error'}}" class="state-inline">
+      <text>冲突判断暂不可用，不代表没有风险</text>
+      <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
     </view>
-    <view wx:if="{{medLinks.length === 0}}" class="hint-sm">暂无过敏关联</view>
-    <view wx:for="{{medLinks}}" wx:for-item="l" wx:key="id" class="link-row">
-      <view class="link-main">
-        <text class="link-allergen">{{l.allergen}}</text>
-        <text class="{{l.kind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{l.kindLabel}}</text>
-        <text wx:if="{{l.hit}}" class="tag-red">命中</text>
+    <block wx:else>
+      <view wx:if="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
+        <text>你的过敏档案命中：{{hitsSummary}}</text>
       </view>
-      <button size="mini" class="btn-ghost" data-id="{{l.id}}" data-allergen="{{l.allergen}}" data-kind="{{l.kindLabel}}" bindtap="removeLink">删</button>
-    </view>
-    <view class="form-row">
-      <input class="ipt" value="{{linkAllergen}}" bindinput="onLinkAllergenInput" placeholder="过敏原，如 青霉素" maxlength="20" />
-      <picker class="link-kind" mode="selector" range="{{linkKindOptions}}" range-key="label" value="{{linkKindIndex}}" bindchange="onLinkKindChange">
-        <view class="ipt link-kind-value">{{linkKindOptions[linkKindIndex].label}}</view>
-      </picker>
-    </view>
-    <button size="mini" class="btn-primary add-link-btn" loading="{{linkSaving}}" disabled="{{linkSaving}}" bindtap="addLink">添加关联</button>
+      <view wx:if="{{allergyState === 'ready' && medLinks.length === 0}}" class="hint-sm">暂无过敏关联</view>
+      <view wx:for="{{medLinks}}" wx:for-item="l" wx:key="id" class="link-row">
+        <view class="link-main">
+          <text class="link-allergen">{{l.allergen}}</text>
+          <text class="{{l.kind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{l.kindLabel}}</text>
+          <text wx:if="{{l.hit}}" class="tag-red">命中</text>
+        </view>
+        <button size="mini" class="btn-ghost" loading="{{linkSaving}}" disabled="{{linkSaving}}" data-id="{{l.id}}" data-allergen="{{l.allergen}}" data-kind="{{l.kindLabel}}" bindtap="removeLink">删除</button>
+      </view>
+      <view class="form-row">
+        <input class="ipt" value="{{linkAllergen}}" bindinput="onLinkAllergenInput" placeholder="过敏原，如 青霉素" maxlength="20" />
+        <picker class="link-kind" mode="selector" range="{{linkKindOptions}}" range-key="label" value="{{linkKindIndex}}" bindchange="onLinkKindChange">
+          <view class="ipt link-kind-value">{{linkKindOptions[linkKindIndex].label}}</view>
+        </picker>
+      </view>
+      <button size="mini" class="btn-primary add-link-btn" loading="{{linkSaving}}" disabled="{{linkSaving}}" bindtap="addLink">添加关联</button>
+    </block>
   </view>
 
-  <!-- 在库批次（卡片组，V2 Step1） -->
   <view class="zone">
     <view class="zone-head">
       <text class="zone-title">在库批次（{{activeBatches.length}}）</text>
-      <button size="mini" class="btn-primary" bindtap="toggleAddBatch">{{addingBatch ? '收起' : '+ 新增'}}</button>
+      <button size="mini" class="btn-primary" bindtap="toggleAddBatch">{{addingBatch ? '收起' : '新增批次'}}</button>
     </view>
 
     <view wx:if="{{addingBatch}}" class="card">
@@ -129,9 +141,13 @@
       </view>
     </view>
 
-    <view wx:if="{{!addingBatch && !editingBatchId && activeBatches.length === 0}}" class="card center-hint">暂无在库批次，点右上角「+ 新增」添加</view>
+    <view wx:if="{{batchState === 'error'}}" class="state-inline">
+      <text>批次信息暂时无法加载</text>
+      <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
+    </view>
+    <view wx:elif="{{!addingBatch && !editingBatchId && activeBatches.length === 0}}" class="card center-hint">暂无在库批次，点右上角「新增批次」添加</view>
 
-    <view wx:for="{{activeBatches}}" wx:for-item="b" wx:key="id" class="card batch-card" data-id="{{b.id}}" bindtap="onBatchTap">
+    <view wx:for="{{activeBatches}}" wx:for-item="b" wx:key="id" class="card batch-card" hover-class="row-hover" data-id="{{b.id}}" bindtap="onBatchTap">
       <view class="bc-top">
         <view class="bc-expiry">
           <text class="bc-date">到期 {{b.displayExpiry}}</text>
@@ -144,21 +160,21 @@
       </view>
       <view class="bc-loc">位置：{{b.locationName}}</view>
       <view class="bc-actions">
-        <button wx:if="{{!b.isOpened}}" size="mini" class="btn-ghost" data-id="{{b.id}}" catchtap="markOpened">开封</button>
-        <button size="mini" class="btn-ghost" data-id="{{b.id}}" data-status="used" catchtap="setBatchStatus">用完</button>
-        <button size="mini" class="btn-warn" data-id="{{b.id}}" data-status="discarded" catchtap="setBatchStatus">报废</button>
+        <button wx:if="{{!b.isOpened}}" size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" catchtap="markOpened">开封</button>
+        <button size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="used" catchtap="setBatchStatus">用完</button>
+        <button size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="discarded" catchtap="setBatchStatus">报废</button>
+        <text class="batch-edit-hint">点卡片可编辑</text>
       </view>
     </view>
   </view>
 
-  <!-- 历史批次（折叠区，V2 Step1） -->
   <view class="card" wx:if="{{historyBatches.length > 0}}">
-    <view class="fold-head" bindtap="togglehistory">
+    <view class="fold-head" hover-class="row-hover" bindtap="togglehistory">
       <view class="card-title fold-title">历史批次（{{historyBatches.length}}）</view>
       <text class="fold-arrow">{{historyExpanded ? '收起' : '展开'}}</text>
     </view>
     <block wx:if="{{historyExpanded}}">
-      <view wx:for="{{historyBatches}}" wx:for-item="b" wx:key="id" class="batch-row" data-id="{{b.id}}" bindtap="onBatchTap">
+      <view wx:for="{{historyBatches}}" wx:for-item="b" wx:key="id" class="batch-row" hover-class="row-hover" data-id="{{b.id}}" bindtap="onBatchTap">
         <view class="batch-info">
           <view class="batch-line"><text>到期 {{b.expiry_date}}</text></view>
           <view class="batch-sub">数量 {{b.quantity}} {{b.unit}} · 位置：{{b.locationName}}</view>
@@ -168,8 +184,8 @@
     </block>
   </view>
 
-  <view class="card">
-    <button class="btn-danger del-btn" bindtap="deleteItem">删除物品</button>
+  <view class="card delete-card">
+    <button class="btn-danger" bindtap="deleteItem">移入回收站</button>
   </view>
 </view>
 </view>

@@ -16,6 +16,7 @@ Page({
     largeText: false,
     household: null,
     loadError: '',
+    loading: false,
     loginError: '',
     loginLoading: false,
     items: [],
@@ -77,29 +78,41 @@ Page({
       this.setData({ household: null, loadError: '' })
       return
     }
-    this.clearInventoryData()
+    const previousHouseholdId = this.data.household && this.data.household.id
+    const sameHousehold = String(previousHouseholdId || '') === String(row.household_id)
+    this.clearInventoryData(!sameHousehold)
     this.setData({ household: { id: row.household_id }, loadError: '' })
     await this.loadItems(row.household_id)
   },
 
-  clearInventoryData() {
-    this.setData({
-      items: [], allItems: [], groups: [], searchText: '',
-      categoryIndex: 0, locationIndex: 0, sortIndex: 0,
-      locationOptions: [{ id: 'all', name: '全部位置' }],
+  clearInventoryData(resetFilters) {
+    const next = {
+      items: [], allItems: [], groups: [],
       itemsLimited: false, batchDataLimited: false,
-    })
+      loading: false,
+    }
+    if (resetFilters !== false) {
+      next.locationOptions = [{ id: 'all', name: '全部位置' }]
+      next.searchText = ''
+      next.categoryIndex = 0
+      next.locationIndex = 0
+      next.sortIndex = 0
+    }
+    this.setData(next)
   },
 
   failInventoryLoad(error) {
-    this.clearInventoryData()
+    this.clearInventoryData(false)
     this.setData({ loadError: (error && error.message) || '库存信息加载失败，请重试' })
-    wx.showToast({ title: (error && error.message) || '库存信息加载失败', icon: 'none' })
   },
 
   async loadItems(hid) {
-    this.clearInventoryData()
-    this.setData({ loadError: '' })
+    this.setData({
+      loadError: '',
+      loading: true,
+      items: [],
+      groups: [],
+    })
     const pageSize = 100
     const maxItems = 1000
     const data = []
@@ -199,7 +212,7 @@ Page({
         totalQty: itemQty,
         lowStock: itemQty <= lowStockThreshold(row.low_stock_threshold),
         illu: itemIllustration(row.name, row.category),
-        stockText: itemQty === 0 ? '已用完' : '仅剩 ' + itemQty + (row.unit ? ' ' + row.unit : ''),
+        stockText: itemQty === 0 ? '已用完' : String(itemQty) + (row.unit ? ' ' + row.unit : ''),
       })
     })
     const locationOptions = [{ id: 'all', name: '全部位置' }].concat((locRes.data || []).map(function (l) { return { id: String(l.id), name: l.name } }))
@@ -212,6 +225,7 @@ Page({
       locationIndex: matchedLocationIndex >= 0 ? matchedLocationIndex : 0,
       itemsLimited: itemsLimited,
       batchDataLimited: batchDataLimited,
+      loading: false,
     }, () => this.applyFilters())
   },
 
@@ -269,6 +283,8 @@ Page({
     this.setData({ searchText: '', categoryIndex: 0, locationIndex: 0, sortIndex: 0 }, () => this.applyFilters())
   },
 
+  clearinventoryfilters() { this.clearInventoryFilters() },
+
   retryInventoryLoad() {
     this.setData({ loadError: '' })
     this.loadHousehold()
@@ -285,9 +301,18 @@ Page({
     this.restore()
   },
 
+  goHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
+  gohome() { this.goHome() },
+  retryinventoryload() { this.retryInventoryLoad() },
+
   goCreate() {
     wx.navigateTo({ url: '/pages/item-form/item-form' })
   },
+
+  gocreate() { this.goCreate() },
 
   // V2 Step3：扫码录入入口
   gobarcode() {

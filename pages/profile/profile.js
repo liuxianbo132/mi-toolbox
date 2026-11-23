@@ -16,8 +16,11 @@ Page({
     authState: 'checking',
     user: null,
     household: null,
+    householdError: '',
+    membersError: '',
     isOwner: false,
     members: [],
+    signOutBusy: false,
     memberBusy: false, // 退出/移除操作防连点
     loginError: '',
     loginLoading: false,
@@ -85,8 +88,11 @@ Page({
     this.setData({ largeText: enabled })
   },
 
+  // WXML 事件名统一小写，避免编译层将驼峰名小写化后找不到方法
+  onlargetextchange(e) { this.onLargeTextChange(e) },
+
   async restore() {
-    this.setData({ authState: 'checking' })
+    this.setData({ authState: 'checking', householdError: '', membersError: '' })
     const { data: session, error } = await getApp().ensureSession()
     if (error || !session) {
       this.setData({ authState: 'signed-out', user: null, household: null, members: [], isOwner: false })
@@ -106,7 +112,11 @@ Page({
       .eq('owner_id', uid)
       .limit(1)
     if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
+      this.setData({
+        household: null,
+        members: [],
+        householdError: (error && error.message) || '家庭信息加载失败，请重试',
+      })
       return
     }
     const row = mine && mine[0]
@@ -115,7 +125,7 @@ Page({
       this.setData({ household: row.households, isOwner: isOwner })
       await this.loadMembers(row.household_id, uid, isOwner)
     } else {
-      this.setData({ household: null, isOwner: false, members: [] })
+      this.setData({ household: null, householdError: '', membersError: '', isOwner: false, members: [] })
     }
   },
 
@@ -127,9 +137,10 @@ Page({
       .eq('household_id', hid)
       .order('joined_at', { ascending: true })
     if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
+      this.setData({ members: [], membersError: (error && error.message) || '家庭成员加载失败，请重试' })
       return
     }
+    this.setData({ membersError: '' })
     const sessionName = (this.data.user && this.data.user.name) || ''
     let selfNickname = ''
     ;(data || []).forEach(function (m) {
@@ -289,6 +300,8 @@ Page({
     wx.navigateTo({ url: '/pages/trash/trash' })
   },
 
+  goallergy(e) { this.goAllergy(e) },
+
   // 过敏档案入口（m2-brief #6）：本人 + owner 代管
   goAllergy(e) {
     const id = e.currentTarget.dataset.id
@@ -387,6 +400,24 @@ Page({
     await this.loadHousehold()
   },
 
+  retryProfile() {
+    this.restore()
+  },
+
+  retryprofile() { this.retryProfile() },
+
+  retryMembers() {
+    this.loadHousehold()
+  },
+
+  retrymembers() { this.retryMembers() },
+
+  goHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
+  gohome() { this.goHome() },
+
   async onWechatLogin() {
     this.setData({ loginLoading: true, loginError: '' })
     const res = await getApp().loginWithWechat()
@@ -400,12 +431,26 @@ Page({
 
   copyInviteCode() {
     if (!this.data.household) return
-    wx.setClipboardData({ data: this.data.household.invite_code })
+    wx.setClipboardData({
+      data: this.data.household.invite_code,
+      success: () => wx.showToast({ title: '邀请码已复制', icon: 'none' }),
+    })
   },
 
+  onsignout() { this.onSignOut() },
+
   async onSignOut() {
-    await cloud.auth.signOut()
-    getApp().resetSession()
-    this.setData({ authState: 'signed-out', user: null, household: null, members: [], isOwner: false })
+    if (this.data.signOutBusy) return
+    this.setData({ signOutBusy: true })
+    try {
+      const res = await cloud.auth.signOut()
+      if (res && res.error) throw res.error
+      getApp().resetSession()
+      this.setData({ authState: 'signed-out', user: null, household: null, members: [], isOwner: false })
+    } catch (e) {
+      wx.showToast({ title: (e && e.message) || '退出失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ signOutBusy: false })
+    }
   },
 })

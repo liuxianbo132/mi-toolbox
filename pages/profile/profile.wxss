@@ -1,151 +1,171 @@
-/* 页面独有样式；公共类（center、login、app-title、err、btn-danger）已收编至 app.wxss */
+/* 我的 · 家庭身份与设置（Unslop 精修版） */
+
+.page { padding-bottom: 48rpx; }
+
+.brand-mark {
+  display: block;
+  width: 96rpx;
+  height: 96rpx;
+  margin: 0 auto 16rpx;
+}
+.login-card { margin-top: 120rpx; text-align: center; }
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+.profile-mark {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  background: var(--color-primary-light);
+  flex-shrink: 0;
+}
+.profile-copy { min-width: 0; }
+.profile-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-1);
+}
+.profile-sub {
+  margin-top: 6rpx;
+  font-size: 26rpx;
+  line-height: 1.4;
+  color: var(--color-text-2);
+  word-break: break-all;
+}
 
 .row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
+  gap: 16rpx;
+  min-height: 88rpx;
   padding: 12rpx 0;
 }
-
-.row .label {
-  flex-shrink: 0;
-}
-
+.row .label { flex-shrink: 0; }
 .row > text:last-child {
   min-width: 0;
   text-align: right;
   word-break: break-all;
 }
+.label { color: var(--color-text-2); }
 
-.label {
-  color: var(--color-text-3);
-}
-
-/* V3：昵称行——输入框吃掉剩余宽度，保存按钮不换行 */
 .nickname-row .ipt {
   flex: 1;
   min-width: 0;
-  min-height: 64rpx;
+  min-height: 88rpx;
   padding: 10rpx 18rpx;
-  font-size: var(--font-sm);
+  font-size: 28rpx;
   text-align: right;
 }
+.nickname-row button { flex-shrink: 0; }
 
-.nickname-row button {
-  flex-shrink: 0;
+.copy-code {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  width: 100%;
+  min-height: 88rpx;
+  margin-top: 8rpx;
+  padding: 0 16rpx;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-light);
+  color: var(--color-text-2);
+  font-size: 26rpx;
+  text-align: left;
 }
-
+.copy-code::after { border: none; }
 .code {
-  color: var(--color-primary);
+  flex: 1;
+  min-width: 0;
+  color: var(--color-primary-ink);
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  word-break: break-all;
 }
+.copy-hint { font-size: 24rpx; color: var(--color-text-2); }
 
-.member-list {
-  margin-top: var(--space-1);
-}
-
+.member-list { margin-top: 8rpx; }
 .member-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-2) 0;
+  gap: 12rpx;
+  min-height: 104rpx;
+  padding: 12rpx 0;
   border-top: 1rpx solid var(--color-border);
+  flex-wrap: wrap;
 }
-
-.member-row:first-child {
-  border-top: none;
-}
-
-.member-info {
-  flex: 1;
-  min-width: 0;
-}
-
+.member-row:first-child { border-top: none; }
+.member-info { flex: 1; min-width: 180rpx; }
 .member-name {
-  font-size: var(--font-md);
+  font-size: 30rpx;
   font-weight: 600;
   line-height: 1.4;
+  color: var(--color-text-1);
   word-break: break-all;
 }
-
 .self-tag {
   display: inline-block;
-  margin-left: var(--space-1);
+  margin-left: 8rpx;
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
-  font-size: 20rpx;
+  font-size: 22rpx;
 }
-
 .member-meta {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
   margin-top: 4rpx;
+  font-size: 24rpx;
   line-height: 1.45;
+  color: var(--color-text-2);
 }
-
-.member-actions {
-  display: flex;
-  gap: 12rpx;
-  flex-shrink: 0;
-}
-
+.member-actions { display: flex; gap: 8rpx; flex-shrink: 0; }
 .member-empty {
+  padding: 24rpx 0;
   text-align: center;
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  padding: var(--space-2) 0;
-}
-
-.entry-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-md);
-}
-
-.entry-arrow {
-  color: #C7C7CC;
-  font-size: var(--font-lg);
+  font-size: 24rpx;
+  color: var(--color-text-2);
 }
 
 .preference-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 16rpx;
 }
-
 .preference-copy { flex: 1; min-width: 0; }
-.preference-title { font-size: var(--font-md); font-weight: 600; }
-.preference-hint { margin-top: 6rpx; color: var(--color-text-3); font-size: var(--font-xs); line-height: 1.45; }
+.preference-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+.preference-hint {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--color-text-2);
+}
 
 .export-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  gap: 16rpx;
+  margin-top: 16rpx;
 }
-
-.export-hint {
-  margin-top: var(--space-2);
-}
-
-.trash-entry {
+.export-actions button { flex: 1; }
+.export-hint { margin-top: 16rpx; }
+.entry-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  min-height: 88rpx;
+  border-top: 1rpx solid var(--color-border);
+  font-size: 30rpx;
+  color: var(--color-text-1);
 }
-
-.trash-entry-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.trash-entry-arrow {
-  width: 22rpx;
-  height: 22rpx;
-  opacity: 0.3;
-  flex-shrink: 0;
-}
+.entry-arrow { color: var(--color-text-2); font-size: 32rpx; }
+.signout-card { margin-top: 8rpx; }

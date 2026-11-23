@@ -2,49 +2,84 @@
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <view class="app-title">小咪工具箱</view>
+  <view class="app-sub">登录后查看家庭用药安排</view>
   <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
   <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
 </view>
 
-<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+<state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="先创建或加入一个家庭，才能记录用药计划" action-text="前往临期看板" bindaction="gohome" />
 
-<view wx:else>
-  <view class="adherence-entry" bindtap="goadherence">依从性报告 ›</view>
+<state-view wx:elif="{{authState === 'error' || loadState === 'error' && timeline.length === 0 && plans.length === 0}}" icon="/assets/icons/alertCircle-red.svg" title="用药信息暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
 
-  <!-- 今日时间线 -->
-  <view class="card">
-    <view class="card-title">今日用药 · {{todayText}}</view>
-    <view wx:if="{{timeline.length === 0}}" class="hint-sm">今天没有用药安排</view>
-    <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row">
-      <view class="dose-time">{{d.time}}</view>
-      <view class="dose-main">
-        <view class="dose-name">{{d.itemName}}<text wx:if="{{d.conflictKind}}" class="{{d.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}} dose-conflict">{{d.conflictLabel}}</text></view>
-        <view class="dose-meta" wx:if="{{d.memberName}}">{{d.memberName}}</view>
-      </view>
-      <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
-      <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" data-id="{{d.id}}" bindtap="confirmDose">确认</button>
+<view wx:else class="page">
+  <view class="entry-bar">
+    <view class="entry-link" hover-class="row-hover" bindtap="goallergy">
+      <image class="entry-ico" src="/assets/icons/shield.svg" />
+      <text>过敏档案</text>
+    </view>
+    <view class="entry-link" hover-class="row-hover" bindtap="goadherence">
+      <image class="entry-ico" src="/assets/icons/clock.svg" />
+      <text>依从性报告</text>
     </view>
   </view>
 
-  <!-- 计划列表 -->
-  <view class="card">
-    <view class="sec-head">
-      <view class="card-title">用药计划（{{plans.length}}）</view>
-      <button size="mini" class="btn-primary" bindtap="goNewPlan">＋ 新建</button>
+  <view wx:if="{{allergyState === 'error'}}" class="allergy-alert">
+    <image class="allergy-ico" src="/assets/icons/alertCircle-red.svg" />
+    <text>{{allergyError}}</text>
+    <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
+  </view>
+
+  <view class="section-card">
+    <view class="section-head">
+      <view class="section-title">今日用药 · {{todayText}}</view>
     </view>
-    <view wx:if="{{plans.length === 0}}" class="hint-sm">还没有用药计划，点右上角新建</view>
-    <view wx:for="{{plans}}" wx:for-item="p" wx:key="id" class="plan-row" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goEditPlan">
+
+    <view wx:if="{{loadState === 'loading'}}" class="empty-inline">正在加载今日用药…</view>
+    <view wx:elif="{{loadState === 'error'}}" class="state-inline">
+      <text>今日用药暂时无法加载</text>
+      <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
+    </view>
+    <view wx:elif="{{timeline.length === 0}}" class="empty-inline">今天没有用药安排</view>
+
+    <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row">
+      <view class="dose-time">{{d.time}}</view>
+      <view class="dose-main">
+        <view class="dose-name">{{d.itemName}}</view>
+        <view wx:if="{{d.conflictKind}}" class="conflict-line">
+          <image class="conflict-ico" src="/assets/icons/alertCircle-red.svg" />
+          <text class="{{d.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{d.conflictLabel}}</text>
+        </view>
+        <view class="dose-meta" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>
+      </view>
+      <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
+      <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" loading="{{doseBusy}}" disabled="{{doseBusy}}" data-id="{{d.id}}" bindtap="confirmDose">确认已服</button>
+    </view>
+  </view>
+
+  <view class="section-card">
+    <view class="section-head">
+      <view class="section-title">用药计划（{{plans.length}}）</view>
+      <button size="mini" class="btn-primary" hover-class="button-hover" bindtap="goNewPlan">新建计划</button>
+    </view>
+
+    <view wx:if="{{loadState === 'ready' && plans.length === 0}}" class="empty-inline">还没有用药计划，点右上角新建</view>
+    <view wx:for="{{plans}}" wx:for-item="p" wx:key="id" class="plan-row" hover-class="row-hover" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goEditPlan">
       <view class="plan-main">
-        <view class="plan-name">{{p.itemName}}<text wx:if="{{p.conflictKind}}" class="{{p.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}} plan-conflict">{{p.conflictLabel}}</text><text class="plan-freq">{{p.freqLabel}}</text></view>
-        <view class="plan-meta">{{p.timesText}}<text wx:if="{{p.memberName}}"> · {{p.memberName}}</text></view>
+        <view class="plan-name">{{p.itemName}}</view>
+        <view wx:if="{{p.conflictKind}}" class="conflict-line">
+          <image class="conflict-ico" src="/assets/icons/alertCircle-red.svg" />
+          <text class="{{p.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{p.conflictLabel}}</text>
+        </view>
+        <view class="plan-meta">{{p.freqLabel}} · {{p.timesText}}</view>
+        <view class="plan-meta" wx:if="{{p.memberName}}">服药人：{{p.memberName}}</view>
         <view class="plan-meta">{{p.courseText}}</view>
       </view>
       <view class="plan-side">
         <text class="{{p.status === 'active' ? 'tag-green' : 'tag-amber'}}">{{p.statusLabel}}</text>
-        <button wx:if="{{p.canEdit}}" size="mini" class="btn-warn" data-id="{{p.id}}" catchtap="cancelPlan">取消</button>
+        <button wx:if="{{p.canEdit}}" size="mini" class="btn-ghost" loading="{{planBusy}}" disabled="{{planBusy}}" data-id="{{p.id}}" catchtap="cancelPlan">取消计划</button>
       </view>
     </view>
   </view>
 </view>
-
 </view>

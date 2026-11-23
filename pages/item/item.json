@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "物品详情",
   "usingComponents": {
-    "batch-form": "/components/batch-form/batch-form"
+    "batch-form": "/components/batch-form/batch-form",
+    "state-view": "/components/state-view/state-view"
   }
 }

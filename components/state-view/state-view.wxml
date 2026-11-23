@@ -1,0 +1,7 @@
+<view class="state-card {{compact ? 'is-compact' : ''}}">
+  <image wx:if="{{icon}}" class="state-icon" src="{{icon}}" mode="aspectFit" />
+  <view wx:if="{{title}}" class="state-title">{{title}}</view>
+  <view wx:if="{{desc}}" class="state-desc">{{desc}}</view>
+  <slot />
+  <button wx:if="{{actionText}}" class="state-action" size="mini" hover-class="button-hover" bindtap="onAction">{{actionText}}</button>
+</view>

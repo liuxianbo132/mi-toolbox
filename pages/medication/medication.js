@@ -39,6 +39,12 @@ Page({
     timeline: [],
     plans: [],
     loading: true,
+    loadState: 'loading', // loading | ready | error
+    loadError: '',
+    allergyState: 'loading', // loading | ready | error
+    allergyError: '',
+    doseBusy: false,
+    planBusy: false,
   },
 
   onShow() {
@@ -47,7 +53,7 @@ Page({
   },
 
   async restore() {
-    this.setData({ authState: 'checking' })
+    this.setData({ authState: 'checking', loadError: '' })
     try {
       const { data: session, error } = await getApp().ensureSession()
       if (error || !session) {
@@ -59,6 +65,19 @@ Page({
       this.setData({ authState: 'signed-out' })
     }
   },
+
+  retryLoad() {
+    if (this.data.householdId) this.loadAll(this.data.householdId)
+    else this.restore()
+  },
+
+  retryload() { this.retryLoad() },
+
+  goHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
+  gohome() { this.goHome() },
 
   async onWechatLogin() {
     this.setData({ loginLoading: true, loginError: '' })
@@ -78,11 +97,19 @@ Page({
       this.setData({ authState: 'signed-out' })
       return
     }
-    const { data: mine } = await cloud.database
+    const { data: mine, error: householdError } = await cloud.database
       .from('members')
       .select('household_id')
       .eq('owner_id', uid)
       .limit(1)
+    if (householdError) {
+      this.setData({
+        authState: 'error',
+        loadState: 'error',
+        loadError: (householdError && householdError.message) || '家庭信息加载失败，请重试',
+      })
+      return
+    }
     const row = mine && mine[0]
     if (!row) {
       this.setData({ authState: 'no-household', loading: false })
@@ -93,7 +120,7 @@ Page({
   },
 
   async loadAll(hid) {
-    this.setData({ loading: true })
+    this.setData({ loading: true, loadState: 'loading', allergyState: 'loading', loadError: '', allergyError: '' })
     const now = new Date()
     const range = dayRange(now)
     this.setData({ todayText: now.getMonth() + 1 + '月' + now.getDate() + '日' })
@@ -107,6 +134,10 @@ Page({
       .from('items')
       .select('id, name, category')
       .eq('household_id', hid)
+    if (memberRes.error || itemRes.error) {
+      this.setData({ loading: false, loadState: 'error', loadError: '用药信息暂时无法加载，请重试' })
+      return
+    }
     const members = memberRes.data || []
     const items = itemRes.data || []
     const memberNameMap = {}
@@ -131,22 +162,33 @@ Page({
         .from('allergies')
         .select('allergen')
         .eq('member_id', myMemberId)
-      const myAllergens = (alRes.data || []).map(function (a) {
-        return a.allergen
-      })
-      if (myAllergens.length) {
-        const linkRes = await cloud.database
-          .from('drug_allergy_links')
-          .select('item_id, allergen, kind')
-          .eq('household_id', hid)
-        ;(linkRes.data || []).forEach(function (l) {
-          const hit = matchAllergies(myAllergens, [l])
-          if (hit.length) {
-            const kind = hit[0].kind
-            if (!hitsByItem[l.item_id] || kind === 'forbidden') hitsByItem[l.item_id] = kind
+      if (alRes.error) {
+        this.setData({ allergyState: 'error', allergyError: '过敏档案加载失败，冲突提示暂不可用' })
+      } else {
+        const myAllergens = (alRes.data || []).map(function (a) { return a.allergen })
+        if (myAllergens.length) {
+          const linkRes = await cloud.database
+            .from('drug_allergy_links')
+            .select('item_id, allergen, kind')
+            .eq('household_id', hid)
+          if (linkRes.error) {
+            this.setData({ allergyState: 'error', allergyError: '药品过敏关联加载失败，冲突提示暂不可用' })
+          } else {
+            ;(linkRes.data || []).forEach(function (l) {
+              const hit = matchAllergies(myAllergens, [l])
+              if (hit.length) {
+                const kind = hit[0].kind
+                if (!hitsByItem[l.item_id] || kind === 'forbidden') hitsByItem[l.item_id] = kind
+              }
+            })
+            this.setData({ allergyState: 'ready' })
           }
-        })
+        } else {
+          this.setData({ allergyState: 'ready' })
+        }
       }
+    } else {
+      this.setData({ allergyState: 'ready' })
     }
 
     const doseRes = await cloud.database
@@ -162,6 +204,11 @@ Page({
       .select('id, item_id, member_id, times, freq, start_date, end_date, miss_threshold_minutes, status')
       .eq('household_id', hid)
       .order('created_at', { ascending: false })
+
+    if (doseRes.error || planRes.error) {
+      this.setData({ loading: false, loadState: 'error', loadError: '用药安排暂时无法加载，请重试' })
+      return
+    }
 
     const planMap = {}
     ;(planRes.data || []).forEach(function (p) {
@@ -180,7 +227,7 @@ Page({
         statusClass: d.status === 'taken' ? 'tag-green' : d.status === 'missed' ? 'tag-red' : 'tag-amber',
         canConfirm: d.status === 'pending',
         conflictKind: hitsByItem[p.item_id] || '',
-        conflictLabel: conflictLabelOf(hitsByItem[p.item_id]),
+        conflictLabel: hitsByItem[p.item_id] ? '本人' + conflictLabelOf(hitsByItem[p.item_id]) : '',
       }
     })
 
@@ -196,31 +243,37 @@ Page({
         status: p.status,
         canEdit: p.status === 'active',
         conflictKind: hitsByItem[p.item_id] || '',
-        conflictLabel: conflictLabelOf(hitsByItem[p.item_id]),
+        conflictLabel: hitsByItem[p.item_id] ? '本人' + conflictLabelOf(hitsByItem[p.item_id]) : '',
       }
     })
 
-    this.setData({ loading: false, timeline: timeline, plans: plans })
+    this.setData({ loading: false, loadState: 'ready', timeline: timeline, plans: plans })
   },
 
   // 打卡：pending → taken（contract v1.7：confirmed_at=now）
   async confirmDose(e) {
     const id = e.currentTarget.dataset.id
-    if (!id) return
+    if (!id || this.data.doseBusy) return
+    this.setData({ doseBusy: true })
     const res = await dosesAccess.update(id, {
       status: 'taken',
       confirmed_at: new Date().toISOString(),
     })
+    this.setData({ doseBusy: false })
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '操作失败', icon: 'none' })
       return
     }
-    wx.showToast({ title: '已确认', icon: 'success' })
+    wx.showToast({ title: '已打卡', icon: 'success' })
     this.loadAll(this.data.householdId)
   },
 
   goadherence() {
     wx.navigateTo({ url: '/pages/adherence/adherence' })
+  },
+
+  goallergy() {
+    wx.navigateTo({ url: '/pages/allergy/allergy' })
   },
 
   goNewPlan() {
@@ -253,14 +306,18 @@ Page({
   },
 
   async doCancelPlan(id) {
+    if (this.data.planBusy) return
+    this.setData({ planBusy: true })
     const upd = await plansAccess.update(id, { status: 'cancelled' })
     if (upd.error || !upd.data) {
+      this.setData({ planBusy: false })
       wx.showToast({ title: (upd.error && upd.error.message) || '操作失败', icon: 'none' })
       return
     }
     // 契约 v1.7 #5/#6：取消时删除未来未发生的 pending
-    await this.removeFuturePending(id)
-    wx.showToast({ title: '已取消', icon: 'success' })
+    const cleaned = await this.removeFuturePending(id)
+    this.setData({ planBusy: false })
+    wx.showToast({ title: cleaned ? '已取消' : '计划已取消，未来提醒清理失败', icon: 'none' })
     this.loadAll(this.data.householdId)
   },
 
@@ -271,12 +328,15 @@ Page({
       .select('id, scheduled_at, status')
       .eq('plan_id', planId)
       .eq('status', 'pending')
-    if (error) return
+    if (error) return false
     const future = (data || []).filter(function (d) {
       return new Date(d.scheduled_at).getTime() > nowMs
     })
+    let cleaned = true
     for (let i = 0; i < future.length; i++) {
-      await dosesAccess.remove(future[i].id)
+      const removed = await dosesAccess.remove(future[i].id)
+      if (removed.error || !removed.data) cleaned = false
     }
+    return cleaned
   },
 })

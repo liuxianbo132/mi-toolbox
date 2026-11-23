@@ -2,63 +2,86 @@
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+  <view class="app-title">小咪工具箱</view>
+  <view class="app-sub">登录后查看家庭库存</view>
   <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
   <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
 </view>
 
-<view wx:else>
-  <view wx:if="{{loadError}}" class="card center-hint">
-    <view>{{loadError}}</view>
-    <button size="mini" class="btn-ghost" bindtap="retryInventoryLoad">重试</button>
-  </view>
-  <view wx:elif="{{!household}}" class="card center-hint">先到「临期看板」创建家庭，或用家人分享的邀请码加入，再回来管理库存</view>
-  <block wx:else>
-    <view class="card inventory-tools">
-      <input class="ipt search-input" placeholder="搜索名称、品牌、规格或条码" value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
-      <view class="filter-row">
-        <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
-          <view class="filter-value">{{categoryOptions[categoryIndex].label}}</view>
-        </picker>
-        <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange">
-          <view class="filter-value">{{locationOptions[locationIndex].name}}</view>
-        </picker>
-        <picker class="filter-picker sort-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange">
-          <view class="filter-value">{{sortOptions[sortIndex]}}</view>
-        </picker>
-      </view>
-      <button size="mini" class="btn-ghost clear-filters" bindtap="clearInventoryFilters">清空搜索与筛选</button>
-      <view wx:if="{{itemsLimited || batchDataLimited}}" class="limit-hint">{{itemsLimited ? '搜索范围限最近的 1000 件物品' : ''}}{{itemsLimited && batchDataLimited ? '；' : ''}}{{batchDataLimited ? '位置与到期筛选最多参考 3000 个在库批次' : ''}}</view>
+<state-view wx:elif="{{loadError}}" icon="/assets/icons/alertCircle-red.svg" title="库存暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryinventoryload" />
+
+<state-view wx:elif="{{!household}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="先创建或加入一个家庭，才能和家人共享库存" action-text="前往临期看板" bindaction="gohome" />
+
+<view wx:else class="page">
+  <view class="card inventory-tools">
+    <view class="tool-head">
+      <view class="tool-title">家庭库存</view>
+      <view class="tool-sub">{{allItems.length}} 件物品</view>
     </view>
-    <view class="card action-row">
-      <button class="btn-primary add-btn" bindtap="goCreate">＋ 新增物品</button>
-      <button class="btn-ghost scan-btn" bindtap="gobarcode">扫码</button>
+
+    <input class="ipt search-input" placeholder="搜索名称、品牌、规格或条码" value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
+    <view class="filter-row">
+      <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
+        <view class="filter-value">
+          <text>{{categoryOptions[categoryIndex].label}}</text>
+          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
+        </view>
+      </picker>
+      <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange">
+        <view class="filter-value">
+          <text>{{locationOptions[locationIndex].name}}</text>
+          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
+        </view>
+      </picker>
+      <picker class="filter-picker sort-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange">
+        <view class="filter-value">
+          <text>{{sortOptions[sortIndex]}}</text>
+          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
+        </view>
+      </picker>
     </view>
-    <view class="loc-entry" bindtap="golocations">
+    <view wx:if="{{searchText || categoryIndex !== 0 || locationIndex !== 0 || sortIndex !== 0}}" class="clear-row">
+      <button size="mini" class="btn-ghost" hover-class="button-hover" bindtap="clearInventoryFilters">清空筛选</button>
+    </view>
+    <view wx:if="{{itemsLimited || batchDataLimited}}" class="limit-hint">{{itemsLimited ? '搜索范围限最近的 1000 件物品' : ''}}{{itemsLimited && batchDataLimited ? '；' : ''}}{{batchDataLimited ? '位置与到期筛选最多参考 3000 个在库批次' : ''}}</view>
+
+    <view class="action-row">
+      <button class="btn-primary add-btn" hover-class="button-hover" bindtap="goCreate">新增物品</button>
+      <button class="btn-ghost scan-btn" hover-class="button-hover" bindtap="gobarcode">扫码</button>
+    </view>
+    <view class="loc-entry" hover-class="row-hover" bindtap="golocations">
       <text>管理存放位置</text>
-      <text class="arrow">›</text>
+      <image class="loc-arrow" src="/assets/icons/chevron.svg" />
     </view>
-    <view wx:if="{{items.length === 0}}" class="card center-hint">
-      <view>{{allItems.length === 0 ? '还没有物品记录' : '没有符合条件的物品'}}</view>
-      <button wx:if="{{allItems.length === 0}}" size="mini" class="btn-primary" bindtap="goCreate">去录入</button>
-    </view>
-    <block wx:else>
-      <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group">
-        <view class="group-head">
-          <image class="group-ico" src="{{g.illu}}" mode="aspectFit" />
-          <text>{{g.label}}（{{g.count}}）</text>
-        </view>
-        <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="card item-row" data-id="{{item.id}}" bindtap="goDetail">
-          <image class="item-illu" src="{{item.illu}}" mode="aspectFit" />
-          <view class="item-main">
-            <view class="item-name">{{item.name}}</view>
-            <view class="item-meta">{{item.brand || ''}} {{item.spec || ''}}</view>
-          </view>
-          <text wx:if="{{item.lowStock}}" class="tag-amber stock-tag">库存不足</text>
-          <text class="loc-badge {{item.locKnown ? 'loc-known' : ''}}">{{item.locText}}</text>
-          <view class="arrow">›</view>
-        </view>
+  </view>
+
+  <state-view wx:if="{{loading}}" title="正在加载库存" desc="整理家庭物品，请稍候" compact="{{true}}" />
+
+  <state-view wx:elif="{{items.length === 0 && allItems.length === 0}}" icon="/assets/icons/box.svg" title="还没有物品记录" desc="把家里的第一件物品记录下来吧" action-text="去录入" bindaction="gocreate" />
+
+  <state-view wx:elif="{{items.length === 0}}" icon="/assets/icons/box.svg" title="没有符合条件的物品" desc="试试更换关键词或清空筛选条件" action-text="清空筛选" bindaction="clearinventoryfilters" />
+
+  <block wx:else>
+    <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group-card">
+      <view class="group-head">
+        <image class="group-ico" src="{{g.illu}}" mode="aspectFit" />
+        <text class="group-label">{{g.label}}</text>
+        <text class="group-count">{{g.count}}</text>
       </view>
-    </block>
+      <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="item-row" hover-class="row-hover" data-id="{{item.id}}" bindtap="goDetail">
+        <image class="item-illu" src="{{item.illu}}" mode="aspectFit" />
+        <view class="item-main">
+          <view class="item-name">{{item.name}}</view>
+          <view class="item-meta">{{item.brand || ''}}{{item.brand && item.spec ? ' · ' : ''}}{{item.spec || ''}}</view>
+          <view class="item-meta">{{item.earliestExpiry ? '最近到期 ' + item.earliestExpiry : '暂无在库批次'}} · {{item.locText}}</view>
+        </view>
+        <view class="item-side">
+          <text class="stock-num {{item.lowStock ? 'is-low' : ''}}">{{item.stockText}}</text>
+          <text wx:if="{{item.lowStock}}" class="tag-amber stock-tag">{{item.totalQty === 0 ? '待补货' : '库存不足'}}</text>
+        </view>
+        <image class="row-arrow" src="/assets/icons/chevron.svg" />
+      </view>
+    </view>
   </block>
 </view>
 </view>

@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "用药"
+  "navigationBarTitleText": "用药",
+  "usingComponents": {
+    "state-view": "/components/state-view/state-view"
+  }
 }

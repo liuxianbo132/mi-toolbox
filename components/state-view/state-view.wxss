@@ -1,0 +1,45 @@
+.state-card {
+  padding: 48rpx 32rpx;
+  text-align: center;
+  background: var(--color-card, #FFFFFF);
+  border-radius: var(--radius-lg, 24rpx);
+  box-shadow: var(--shadow-card, 0 2rpx 12rpx rgba(0, 0, 0, 0.04));
+}
+.state-card.is-compact {
+  padding: 32rpx 24rpx;
+}
+.state-icon {
+  display: block;
+  width: 96rpx;
+  height: 96rpx;
+  margin: 0 auto;
+}
+.state-title {
+  margin-top: 12rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-1, #1C1C1E);
+}
+.state-desc {
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--color-text-2, #5F5F64);
+}
+.state-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 176rpx;
+  min-height: 88rpx;
+  margin: 20rpx auto 0;
+  padding: 0 24rpx;
+  border-radius: var(--radius-sm, 10rpx);
+  background: var(--color-primary-ink, #0062CC);
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 500;
+  line-height: 1;
+}
+.state-action::after { border: none; }

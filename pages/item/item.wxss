@@ -239,6 +239,24 @@
 }
 
 .fold-arrow {
-  color: var(--color-primary);
-  font-size: var(--font-xs);
+  color: var(--color-primary-ink);
+  font-size: 26rpx;
 }
+
+/* Unslop 精修：详情头图与可编辑批次提示 */
+.detail-illu {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  background: #F3F6FC;
+  flex-shrink: 0;
+}
+.detail-copy { flex: 1; min-width: 0; }
+.detail-meta text { color: var(--color-text-2); }
+.batch-edit-hint {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: var(--color-text-2);
+}
+.fold-head { min-height: 88rpx; }
+.delete-card { margin-top: 8rpx; }

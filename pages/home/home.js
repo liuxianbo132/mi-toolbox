@@ -48,6 +48,7 @@ Page({
     largeText: false,
     authState: 'checking',
     household: null,
+    householdError: '',
     loginError: '',
     loginLoading: false,
     createName: '',
@@ -55,6 +56,8 @@ Page({
     familyBusy: false,
     greeting: greetingText(),
     // 三分区（已过期 / 危险期 / 警告期）
+    urgentState: 'loading', // loading | ready | error
+    urgentLimited: false,
     zones: emptyZones(),
     stats: { expired: 0, danger: 0, warn: 0, safe: 0 },
     missedToday: 0, // 今日漏服剂量数（M2a 提醒条）
@@ -71,7 +74,7 @@ Page({
   },
 
   async restore() {
-    this.setData({ authState: 'checking' })
+    this.setData({ authState: 'checking', householdError: '' })
     try {
       const { data: session, error } = await getApp().ensureSession()
       if (error || !session) {
@@ -84,6 +87,26 @@ Page({
       this.setData({ authState: 'signed-out' })
     }
   },
+
+  retryhousehold() { this.retryHousehold() },
+
+  retryHousehold() {
+    this.restore()
+  },
+
+  retryUrgent() {
+    const household = this.data.household
+    if (household && household.id) this.loadUrgent(household.id)
+  },
+
+  retryurgent() { this.retryUrgent() },
+
+  retryMedication() {
+    const household = this.data.household
+    if (household && household.id) this.loadTodayDoses(household.id)
+  },
+
+  retrymedication() { this.retryMedication() },
 
   async onWechatLogin() {
     this.setData({ loginLoading: true, loginError: '' })
@@ -106,13 +129,20 @@ Page({
       .eq('owner_id', uid)
       .limit(1)
     if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
+      this.setData({
+        household: null,
+        householdError: (error && error.message) || '家庭信息加载失败，请重试',
+        urgentState: 'error',
+      })
       return
     }
     const row = mine && mine[0]
     if (!row || !row.households) {
       this.setData({
         household: null,
+        householdError: '',
+        urgentState: 'ready',
+        urgentLimited: false,
         zones: emptyZones(),
         stats: { expired: 0, danger: 0, warn: 0, safe: 0 },
         todayDoses: [],
@@ -144,6 +174,7 @@ Page({
   // 看板三分区卡片列表（已过期 / 危险期 / 警告期）+ 安全批次计数
   // 契约 v1.5 #13：有 opened_at 的批次按 min(到期日, 开封到期日) 分级与排序
   async loadUrgent(hid) {
+    this.setData({ urgentState: 'loading' })
     const { data, error } = await cloud.database
       .from('batches')
       .select('id, item_id, expiry_date, production_date, opened_at, quantity, unit, status, items(name, category, pao_days)')
@@ -151,9 +182,9 @@ Page({
       .eq('status', 'active')
       .eq('is_deleted', false)
       .order('expiry_date', { ascending: true })
-      .limit(50)
+      .limit(51)
     if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
+      this.setData({ urgentState: 'error', urgentLimited: false })
       return
     }
     let expired = 0
@@ -161,7 +192,10 @@ Page({
     let warn = 0
     let safe = 0
     const zones = emptyZones()
-    ;(data || []).forEach((b) => {
+    const allBatches = data || []
+    const urgentLimited = allBatches.length > 50
+    const rows = urgentLimited ? allBatches.slice(0, 50) : allBatches
+    rows.forEach((b) => {
       const baseDate = effectiveExpiry(b.expiry_date, b.opened_at, b.items && b.items.pao_days)
       const d = daysUntil(baseDate)
       const cat = b.items && b.items.category
@@ -218,7 +252,12 @@ Page({
         return a.expiry < b.expiry ? -1 : a.expiry > b.expiry ? 1 : 0
       })
     })
-    this.setData({ zones: zones, stats: { expired: expired, danger: danger, warn: warn, safe: safe } })
+    this.setData({
+      zones: zones,
+      stats: { expired: expired, danger: danger, warn: warn, safe: safe },
+      urgentState: 'ready',
+      urgentLimited: urgentLimited,
+    })
   },
 
   // 今日用药摘要（最多 4 条；顺序按 scheduled_at）

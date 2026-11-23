@@ -11,10 +11,15 @@ Page({
   data: {
     largeText: false,
     loading: true,
+    loadState: 'loading', // loading | ready | not-found | error
+    loadError: '',
     itemId: null,
     item: null, // {id, household_id, name, category, categoryLabel, unit, brand, spec}
     activeBatches: [],
     historyBatches: [],
+    batchState: 'idle', // idle | loading | ready | error
+    batchError: '',
+    batchBusy: false,
     categoryOptions: CATEGORIES,
     // 物品编辑
     editing: false,
@@ -35,7 +40,10 @@ Page({
     editBatchSaving: false,
     // 用药计划（M2a，仅药品）
     medPlans: [],
+    medPlansState: 'idle', // idle | loading | ready | error
     // 过敏关联与冲突（M2b，仅药品）
+    allergyState: 'idle', // idle | loading | ready | error
+    allergyError: '',
     medLinks: [],
     myHits: [],
     hitsSummary: '',
@@ -59,12 +67,18 @@ Page({
     if (this.data.itemId) {
       this.loadAll()
     } else {
-      this.setData({ loading: false, item: null })
+      this.setData({ loading: false, loadState: 'not-found', item: null })
     }
   },
 
+  retryLoad() {
+    if (this.data.itemId) this.loadAll()
+  },
+
+  retryload() { this.retryLoad() },
+
   async loadAll() {
-    this.setData({ loading: true })
+    this.setData({ loading: true, loadState: 'loading', batchState: 'loading', loadError: '', batchError: '' })
     const { data: itemRows, error } = await cloud.database
       .from('items')
       .select('id, household_id, name, category, unit, brand, spec, pao_days')
@@ -72,14 +86,24 @@ Page({
       .eq('is_deleted', false)
       .limit(1)
     if (error) {
-      this.setData({ loading: false })
-      wx.showToast({ title: error.message, icon: 'none' })
+      this.setData({
+        loading: false,
+        loadState: 'error',
+        loadError: (error && error.message) || '物品信息加载失败，请重试',
+      })
       return
     }
     const row = itemRows && itemRows[0]
     if (!row) {
       // RLS 过滤或已删除：0 行即视为不可见
-      this.setData({ loading: false, item: null, activeBatches: [], historyBatches: [] })
+      this.setData({
+        loading: false,
+        loadState: 'not-found',
+        item: null,
+        activeBatches: [],
+        historyBatches: [],
+        batchState: 'idle',
+      })
       return
     }
     const { data: batchRows, error: batchError } = await cloud.database
@@ -89,15 +113,14 @@ Page({
       .eq('is_deleted', false)
       .order('expiry_date', { ascending: true })
       .limit(200)
-    if (batchError) {
-      wx.showToast({ title: batchError.message, icon: 'none' })
-    }
+    let batchesFailed = !!batchError
     // V2 Step2：位置字典（批次行显示位置名 + 新增批次选择器）
     const locRes = await cloud.database
       .from('locations')
       .select('id, name')
       .eq('household_id', row.household_id)
       .order('created_at', { ascending: true })
+    if (locRes.error) batchesFailed = true
     const locations = locRes.data || []
     const locMap = {}
     locations.forEach(function (l) {
@@ -108,6 +131,9 @@ Page({
     const historyBatches = all.filter(function (b) { return b.status !== 'active' })
     this.setData({
       loading: false,
+      loadState: 'ready',
+      batchState: batchesFailed ? 'error' : 'ready',
+      batchError: batchesFailed ? '批次信息暂时无法加载，请重试' : '',
       item: {
         id: row.id,
         household_id: row.household_id,
@@ -127,17 +153,22 @@ Page({
       this.loadMedPlans(row.id, row.household_id)
       this.loadAllergyInfo(row.id, row.household_id)
     } else {
-      this.setData({ medPlans: [], medLinks: [], myHits: [], hitsSummary: '', hitsWorst: '' })
+      this.setData({ medPlans: [], medPlansState: 'idle', medLinks: [], myHits: [], hitsSummary: '', hitsWorst: '', allergyState: 'idle', allergyError: '' })
     }
   },
 
   // 过敏关联与冲突（m2-brief #7/#8）：links 列表 + 当前用户本人档案命中
   async loadAllergyInfo(itemId, hid) {
+    this.setData({ allergyState: 'loading', allergyError: '' })
     const linkRes = await cloud.database
       .from('drug_allergy_links')
       .select('id, allergen, kind, created_at')
       .eq('item_id', itemId)
       .order('created_at', { ascending: true })
+    if (linkRes.error) {
+      this.setData({ allergyState: 'error', allergyError: '药品过敏关联加载失败，冲突判断暂不可用' })
+      return
+    }
     const links = linkRes.data || []
     let hits = []
     const { data: session } = await cloud.auth.getSession()
@@ -148,12 +179,20 @@ Page({
         .select('id')
         .eq('owner_id', uid)
         .limit(1)
+      if (memberRes.error) {
+        this.setData({ allergyState: 'error', allergyError: '成员信息加载失败，冲突判断暂不可用' })
+        return
+      }
       const myMemberId = memberRes.data && memberRes.data[0] && memberRes.data[0].id
       if (myMemberId) {
         const alRes = await cloud.database
           .from('allergies')
           .select('id, allergen')
           .eq('member_id', myMemberId)
+        if (alRes.error) {
+          this.setData({ allergyState: 'error', allergyError: '过敏档案加载失败，冲突判断暂不可用' })
+          return
+        }
         hits = matchAllergies(
           (alRes.data || []).map(function (a) {
             return a.allergen
@@ -186,6 +225,7 @@ Page({
       }
     }
     this.setData({
+      allergyState: 'ready',
       medLinks: medLinks,
       myHits: hits,
       hitsSummary: hitsText(hits),
@@ -276,7 +316,10 @@ Page({
   },
 
   async doMarkOpened(id) {
+    if (this.data.batchBusy) return
+    this.setData({ batchBusy: true })
     const res = await batchesAccess.update(id, { opened_at: new Date().toISOString() })
+    this.setData({ batchBusy: false })
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '操作失败', icon: 'none' })
       return
@@ -306,16 +349,24 @@ Page({
 
   // 用药计划区块（M2a，仅药品）：该药计划列表 + 成员昵称拼装
   async loadMedPlans(itemId, hid) {
+    this.setData({ medPlansState: 'loading' })
     const { data, error } = await cloud.database
       .from('medication_plans')
       .select('id, item_id, member_id, times, freq, start_date, end_date, status')
       .eq('item_id', itemId)
       .order('created_at', { ascending: false })
-    if (error) return
+    if (error) {
+      this.setData({ medPlansState: 'error' })
+      return
+    }
     const memberRes = await cloud.database
       .from('members')
       .select('id, nickname')
       .eq('household_id', hid)
+    if (memberRes.error) {
+      this.setData({ medPlansState: 'error' })
+      return
+    }
     const nameMap = {}
     ;(memberRes.data || []).forEach(function (m) {
       nameMap[m.id] = m.nickname || '成员'
@@ -333,7 +384,7 @@ Page({
         statusLabel: STATUS[p.status] || p.status,
       }
     })
-    this.setData({ medPlans: medPlans })
+    this.setData({ medPlans: medPlans, medPlansState: 'ready' })
   },
 
   goNewPlan() {
@@ -509,7 +560,10 @@ Page({
   },
 
   async applyBatchStatus(id, status) {
+    if (this.data.batchBusy) return
+    this.setData({ batchBusy: true })
     const res = await batchesAccess.update(id, { status: status })
+    this.setData({ batchBusy: false })
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '操作失败', icon: 'none' })
       return
@@ -543,7 +597,7 @@ Page({
     if (!batch) return
     const that = this
     wx.showActionSheet({
-      itemList: ['编辑批次', '删除批次'],
+      itemList: ['编辑批次', '移入回收站'],
       success(res) {
         if (res.tapIndex === 0) that.startBatchEdit(batch)
         else if (res.tapIndex === 1) that.confirmDeleteBatch(batch)
@@ -605,8 +659,8 @@ Page({
   confirmDeleteBatch(batch) {
     const that = this
     wx.showModal({
-      title: '删除批次',
-      content: '删除后不可恢复',
+      title: '移入回收站',
+      content: '该批次将移入回收站，可恢复',
       confirmColor: '#A32D2D',
       success(res) {
         if (!res.confirm) return
@@ -616,8 +670,11 @@ Page({
   },
 
   async deleteBatch(id) {
+    if (this.data.batchBusy) return
+    this.setData({ batchBusy: true })
     // 契约 v2.0：软删除——移入回收站，可恢复
     const res = await batchesAccess.update(id, { is_deleted: true, deleted_at: new Date().toISOString() })
+    this.setData({ batchBusy: false })
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
       return

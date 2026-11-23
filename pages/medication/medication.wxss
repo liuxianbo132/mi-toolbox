@@ -1,128 +1,141 @@
-/* 用药 tab：时间线与计划列表；公共类已收编至 app.wxss */
+/* 用药页 · 清晰的今日时间线与 Plans（Unslop 精修版） */
 
-/* 依从性报告入口（右上角文字链接） */
-.adherence-entry {
+.page { padding-bottom: 48rpx; }
+
+.entry-bar {
   display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: var(--space-2) var(--space-3) 0;
-  font-size: var(--font-sm);
-  color: var(--color-primary);
+  gap: 12rpx;
+  padding: 16rpx 24rpx 0;
 }
-
-.sec-head {
+.entry-link {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  flex: 1;
+  min-height: 88rpx;
+  padding: 0 12rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
+  color: var(--color-primary-ink);
+  font-size: 26rpx;
+}
+.entry-ico { width: 36rpx; height: 36rpx; }
+
+.allergy-alert {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 12rpx 16rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-amber-bg);
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: var(--color-amber);
+}
+.allergy-ico { width: 32rpx; height: 32rpx; flex-shrink: 0; }
+.allergy-alert text { flex: 1; }
+
+.section-card {
+  margin: 20rpx 24rpx;
+  padding-bottom: 12rpx;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.section-head {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-1);
+  gap: 16rpx;
+  min-height: 88rpx;
+  padding: 8rpx 24rpx;
 }
-
-.sec-head .card-title {
-  margin-bottom: 0;
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-1);
 }
-
-.hint-sm {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  padding: 12rpx 0;
-  text-align: center;
+.empty-inline {
+  padding: 24rpx 28rpx;
+  font-size: 26rpx;
+  line-height: 1.6;
+  color: var(--color-text-2);
 }
 
 .dose-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
+  gap: 16rpx;
+  min-height: 116rpx;
+  padding: 16rpx 24rpx;
   border-top: 1rpx solid var(--color-border);
 }
-
-.dose-row:first-child {
-  border-top: none;
-}
-
+.dose-row:first-child { border-top: none; }
 .dose-time {
   width: 96rpx;
-  font-size: var(--font-lg);
+  font-size: 32rpx;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-text-1);
   flex-shrink: 0;
 }
-
-.dose-main {
-  flex: 1;
-  min-width: 0;
-}
-
+.dose-main { flex: 1; min-width: 0; }
 .dose-name {
-  font-size: var(--font-md);
+  font-size: 30rpx;
   font-weight: 600;
   line-height: 1.4;
+  color: var(--color-text-1);
+  word-break: break-all;
 }
-
+.conflict-line {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 6rpx;
+}
+.conflict-ico { width: 28rpx; height: 28rpx; flex-shrink: 0; }
 .dose-meta {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
   margin-top: 4rpx;
+  font-size: 24rpx;
   line-height: 1.45;
+  color: var(--color-text-2);
 }
-
-.dose-btn {
-  flex-shrink: 0;
-}
-
-.dose-conflict {
-  margin-left: 12rpx;
-}
-
-.plan-conflict {
-  margin-left: 12rpx;
-}
+.dose-btn { flex-shrink: 0; }
 
 .plan-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
+  gap: 16rpx;
+  min-height: 132rpx;
+  padding: 16rpx 24rpx;
   border-top: 1rpx solid var(--color-border);
 }
-
-.plan-row:first-child {
-  border-top: none;
-}
-
-.plan-main {
-  flex: 1;
-  min-width: 0;
-}
-
+.plan-row:first-child { border-top: none; }
+.plan-main { flex: 1; min-width: 0; }
 .plan-name {
-  font-size: var(--font-md);
+  font-size: 30rpx;
   font-weight: 600;
   line-height: 1.4;
+  color: var(--color-text-1);
+  word-break: break-all;
 }
-
-.plan-freq {
-  margin-left: var(--space-1);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  border-radius: var(--radius-sm);
-  padding: 2rpx 12rpx;
-  font-size: var(--font-xs);
-  font-weight: 400;
-}
-
 .plan-meta {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
   margin-top: 4rpx;
+  font-size: 24rpx;
   line-height: 1.45;
+  color: var(--color-text-2);
+  word-break: break-all;
 }
-
 .plan-side {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12rpx;
+  gap: 8rpx;
   flex-shrink: 0;
 }
+
+.login-card { margin-top: 140rpx; }
