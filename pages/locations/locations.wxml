@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
@@ -36,4 +37,5 @@
       <button size="mini" class="btn-primary" loading="{{saving}}" disabled="{{saving}}" bindtap="addLocation">添加</button>
     </view>
   </view>
+</view>
 </view>

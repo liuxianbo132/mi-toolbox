@@ -10,10 +10,18 @@ Page({
     memberBusy: false, // 退出/移除操作防连点
     loginError: '',
     loginLoading: false,
+    largeText: false,
   },
 
   onShow() {
+    this.setData({ largeText: getApp().globalData.largeText })
     this.restore()
+  },
+
+  onLargeTextChange(e) {
+    const enabled = !!e.detail.value
+    getApp().setLargeText(enabled)
+    this.setData({ largeText: enabled })
   },
 
   async restore() {

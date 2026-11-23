@@ -9,6 +9,7 @@ const BATCH_STATUS_LABEL = { active: '在库', used: '已用完', discarded: '�
 
 Page({
   data: {
+    largeText: false,
     loading: true,
     itemId: null,
     item: null, // {id, household_id, name, category, categoryLabel, unit, brand, spec}
@@ -54,6 +55,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ largeText: getApp().globalData.largeText })
     if (this.data.itemId) {
       this.loadAll()
     } else {

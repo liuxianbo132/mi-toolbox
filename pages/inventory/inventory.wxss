@@ -19,9 +19,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 var(--space-3) var(--space-1);
+  min-height: 88rpx;
+  padding: 0 var(--space-3);
   color: var(--color-primary);
   font-size: var(--font-xs);
+}
+
+.large-text .loc-entry,
+.large-text .group-head {
+  font-size: 28rpx;
+  line-height: 1.6;
 }
 
 .loc-badge {
@@ -64,6 +71,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-2);
+  min-height: 112rpx;
 }
 
 .item-main {
@@ -73,14 +82,38 @@
 
 .item-name {
   font-size: var(--font-lg);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .item-meta {
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-top: 4rpx;
+  line-height: 1.45;
 }
+
+.inventory-tools { padding: var(--space-3); }
+.search-input { width: 100%; }
+.filter-row { display: flex; align-items: stretch; gap: 10rpx; margin-top: var(--space-2); }
+.filter-picker { flex: 1; min-width: 0; }
+.sort-picker { flex: 0.9; }
+.filter-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  padding: 8rpx 10rpx;
+  border-radius: var(--radius-sm);
+  background: rgba(120, 120, 128, 0.08);
+  color: var(--color-text-2);
+  font-size: 22rpx;
+  line-height: 1.4;
+  text-align: center;
+  word-break: break-all;
+}
+.clear-filters { display: block; min-height: 88rpx; margin: var(--space-2) auto 0; }
+.limit-hint { margin-top: var(--space-2); color: var(--color-text-3); font-size: 24rpx; line-height: 1.5; text-align: center; }
 
 .arrow {
   color: #C7C7CC;

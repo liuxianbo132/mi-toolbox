@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
@@ -21,6 +22,7 @@
 </view>
 
 <view wx:else class="page">
+  <image class="cat-background" src="/assets/backgrounds/cat-pattern.svg" mode="scaleToFill" />
 
   <!-- 顶部家庭标识 -->
   <view class="topbar" bindtap="goProfile">
@@ -35,7 +37,7 @@
 
   <!-- 问候 -->
   <view class="hero">
-    <view class="hero-title">{{greeting}}，家人！</view>
+    <view class="hero-title">{{greeting}}，家人！<text class="hero-wave"> 👋</text></view>
     <view class="hero-sub">让家庭生活更安心</view>
   </view>
 
@@ -122,14 +124,19 @@
       </view>
     </view>
 
-    <view wx:if="{{todayDoses.length === 0}}" class="empty-inline">今日暂无用药安排</view>
-    <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row" bindtap="goMedication">
+    <view wx:if="{{medicationSummaryState === 'loading'}}" class="empty-inline">正在加载今日用药…</view>
+    <view wx:elif="{{medicationSummaryState === 'error'}}" class="empty-inline">今日用药暂时无法加载，请点击查看用药</view>
+    <view wx:elif="{{todayDoses.length === 0}}" class="empty-inline">今日暂无用药安排</view>
+    <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row dose-row {{index === 0 ? 'dose-featured' : ''}}" bindtap="goMedication">
       <image class="row-illu" src="/assets/illustrations/medicine.svg" mode="aspectFit" />
       <view class="row-main">
         <view class="row-name">{{d.name}}</view>
-        <view class="row-sub">{{d.time}}{{d.memberName ? ' · ' + d.memberName : ''}}</view>
+        <view class="row-sub" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>
       </view>
-      <text class="row-tag {{d.tagClass}}">{{d.tagText}}</text>
+      <view class="dose-status">
+        <text class="row-tag {{d.tagClass}}">{{d.tagText}}</text>
+        <text class="dose-time">{{d.time}}</text>
+      </view>
       <image class="row-arrow" src="/assets/icons/chevron.svg" />
     </view>
 
@@ -160,4 +167,5 @@
     </view>
   </view>
 
+</view>
 </view>

@@ -45,13 +45,15 @@
 
 .dose-name {
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .dose-meta {
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-top: 4rpx;
+  line-height: 1.45;
 }
 
 .dose-btn {
@@ -86,7 +88,8 @@
 
 .plan-name {
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .plan-freq {
@@ -103,6 +106,7 @@
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-top: 4rpx;
+  line-height: 1.45;
 }
 
 .plan-side {

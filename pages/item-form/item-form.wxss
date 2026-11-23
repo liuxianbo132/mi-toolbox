@@ -6,10 +6,12 @@
 
 .save-btn {
   margin-top: var(--space-3);
+  width: 100%;
 }
 
 .barcode-value {
   color: var(--color-text-2);
+  line-height: 1.4;
 }
 
 /* 视觉录入按钮：整行、次要视觉层级 */
@@ -24,4 +26,20 @@
 .recognize-ico {
   width: 36rpx;
   height: 36rpx;
+  flex-shrink: 0;
+}
+
+.recognize-btn text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.recognize-hint {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--color-text-3);
+  text-align: center;
 }

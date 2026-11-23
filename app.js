@@ -2,6 +2,14 @@ const { cloud } = require('./utils/cloud')
 
 App({
   sessionPromise: null,
+  globalData: {
+    largeText: wx.getStorageSync('mi_large_text_v1') === 'large',
+  },
+
+  setLargeText(enabled) {
+    this.globalData.largeText = !!enabled
+    wx.setStorageSync('mi_large_text_v1', enabled ? 'large' : 'standard')
+  },
 
   ensureSession() {
     if (!this.sessionPromise) {

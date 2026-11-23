@@ -1,4 +1,4 @@
-<view class="bf">
+<view class="bf {{largeText ? 'bf-large' : ''}}">
   <view class="bf-mode">
     <view class="bf-mode-item {{mode === 'direct' ? 'bf-mode-active' : ''}}" data-mode="direct" bindtap="onModeChange">直接选到期日</view>
     <view class="bf-mode-item {{mode === 'calc' ? 'bf-mode-active' : ''}}" data-mode="calc" bindtap="onModeChange">生产日期+保质期</view>

@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
@@ -27,4 +28,5 @@
     </view>
     <view class="form-hint">与药品「过敏关联」按文本精确匹配（如「花生」对「花生」），用于就医用药提示。</view>
   </view>
+</view>
 </view>

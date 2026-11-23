@@ -4,12 +4,14 @@ const { cloud } = require('../../utils/cloud')
 // 命中 → 物品详情（可快速加批次）；未命中 → 录入页预填 barcode；取消/失败返回上一页，无副作用
 Page({
   data: {
+    largeText: false,
     status: 'scanning', // scanning | error | no-household
     errorText: '',
     lastCode: '',
   },
 
   onLoad() {
+    this.setData({ largeText: getApp().globalData.largeText })
     this.startScan()
   },
 

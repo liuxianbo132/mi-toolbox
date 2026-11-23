@@ -20,7 +20,12 @@
 }
 
 .allergen-name {
+  flex: 1;
+  min-width: 0;
   font-size: var(--font-md);
+  font-weight: 500;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 .form-hint {

@@ -87,6 +87,58 @@ function extractJSON(text) {
   }
 }
 
+function isValidProductionDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const parts = value.split('-').map(Number)
+  const year = parts[0]
+  const month = parts[1]
+  const day = parts[2]
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return false
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+  return year >= 1900 && value <= today
+}
+
+// 模型输出不可信：逐字段白名单/类型/范围校验，非法一律置 null（由用户手动填写）
+function sanitize(data) {
+  const out = { name: null, category: null, shelfLifeDays: null, productionDate: null }
+  if (!data || typeof data !== 'object') return out
+  if (typeof data.name === 'string') {
+    const n = data.name.trim().slice(0, 40)
+    if (n) out.name = n
+  }
+  const CATS = ['food', 'medicine', 'daily', 'other']
+  if (typeof data.category === 'string' && CATS.indexOf(data.category) >= 0) out.category = data.category
+  const rawDays = data.shelfLifeDays
+  if (typeof rawDays === 'number' || (typeof rawDays === 'string' && /^\d+$/.test(rawDays.trim()))) {
+    const days = Number(rawDays)
+    if (isFinite(days) && Math.floor(days) === days && days >= 1 && days <= 3650) {
+      out.shelfLifeDays = days
+    }
+  }
+  if (typeof data.productionDate === 'string' && isValidProductionDate(data.productionDate)) {
+    out.productionDate = data.productionDate
+  }
+  return out
+}
+
+// 流式请求不设超时会一直挂着 loading；30 秒兜底（底层请求无法真正取消，只保证 UI 可恢复）
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function (resolve, reject) {
+      setTimeout(function () {
+        reject(new Error('识别超时'))
+      }, ms)
+    }),
+  ])
+}
+
 // 返回 { data: {name, category, shelfLifeDays, productionDate} } | { error: '文案' } | { error: '' }（用户取消）
 async function recognizeFromImage() {
   try {
@@ -95,12 +147,13 @@ async function recognizeFromImage() {
     const base64 = await readBase64(path)
     if (!base64) return { error: '图片读取失败，请手动填写' }
     if (base64.length > 8 * 1024 * 1024) return { error: '图片过大，请重新拍摄' }
-    const text = await chatVision(base64)
+    const text = await withTimeout(chatVision(base64), 30000)
     const obj = extractJSON(text)
     if (!obj) return { error: '识别结果无法解析，请手动填写' }
-    return { data: obj }
+    return { data: sanitize(obj) }
   } catch (e) {
     console.warn('[vision] recognize failed:', e)
+    if (e && e.message === '识别超时') return { error: '识别超时，请手动填写' }
     return { error: '识别失败，请手动填写' }
   }
 }

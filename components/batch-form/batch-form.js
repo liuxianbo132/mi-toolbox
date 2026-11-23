@@ -14,6 +14,10 @@ Component({
       type: Array,
       value: [],
     },
+    largeText: {
+      type: Boolean,
+      value: false,
+    },
   },
 
   data: {

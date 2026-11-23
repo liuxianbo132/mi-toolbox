@@ -37,22 +37,25 @@
 }
 
 .rec-item {
+  flex: 1;
+  min-width: 0;
   font-size: var(--font-md);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 .rec-meta {
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-top: 6rpx;
+  line-height: 1.45;
 }
 
 .rec-time {
   flex-shrink: 0;
   color: var(--color-text-3);
   font-size: var(--font-xs);
+  line-height: 1.4;
 }
 
 /* 动作标签：开封用品牌色、用完为中性地灰 */

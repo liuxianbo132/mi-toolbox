@@ -36,6 +36,7 @@ const DOSE_TAG = {
 
 Page({
   data: {
+    largeText: false,
     authState: 'checking',
     household: null,
     loginError: '',
@@ -50,11 +51,12 @@ Page({
     missedToday: 0, // 今日漏服剂量数（M2a 提醒条）
     todayDoses: [],
     todayDoseTotal: 0,
+    medicationSummaryState: 'loading', // loading | ready | error
     streakDays: 0,
   },
 
   onShow() {
-    this.setData({ greeting: greetingText() })
+    this.setData({ greeting: greetingText(), largeText: getApp().globalData.largeText })
     this.restore()
   },
 
@@ -192,6 +194,7 @@ Page({
 
   // 今日用药摘要（最多 4 条；顺序按 scheduled_at）
   async loadTodayDoses(hid) {
+    this.setData({ medicationSummaryState: 'loading' })
     const now = new Date()
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const end = new Date(start.getTime() + 86400000)
@@ -202,19 +205,25 @@ Page({
       .gte('scheduled_at', start.toISOString())
       .lt('scheduled_at', end.toISOString())
       .order('scheduled_at', { ascending: true })
-      .limit(20)
-    const doses = doseRes.data || []
-    if (!doses.length) {
-      this.setData({ todayDoses: [], todayDoseTotal: 0 })
+      .limit(50)
+    if (doseRes.error) {
+      this.setData({ medicationSummaryState: 'error' })
       return
     }
-    const planRes = await cloud.database
-      .from('medication_plans')
-      .select('id, item_id, member_id')
-      .eq('household_id', hid)
-      .limit(100)
-    const itemRes = await cloud.database.from('items').select('id, name').eq('household_id', hid).limit(200)
-    const memRes = await cloud.database.from('members').select('id, nickname').eq('household_id', hid)
+    const doses = doseRes.data || []
+    if (!doses.length) {
+      this.setData({ todayDoses: [], todayDoseTotal: 0, medicationSummaryState: 'ready' })
+      return
+    }
+    const [planRes, itemRes, memRes] = await Promise.all([
+      cloud.database.from('medication_plans').select('id, item_id, member_id').eq('household_id', hid).limit(200),
+      cloud.database.from('items').select('id, name').eq('household_id', hid).limit(500),
+      cloud.database.from('members').select('id, nickname').eq('household_id', hid),
+    ])
+    if (planRes.error || itemRes.error || memRes.error) {
+      this.setData({ medicationSummaryState: 'error' })
+      return
+    }
     const planMap = {}
     ;(planRes.data || []).forEach(function (p) { planMap[p.id] = p })
     const itemMap = {}
@@ -233,7 +242,7 @@ Page({
         tagClass: tag.cls,
       }
     })
-    this.setData({ todayDoses: list.slice(0, 4), todayDoseTotal: list.length })
+    this.setData({ todayDoses: list.slice(0, 4), todayDoseTotal: list.length, medicationSummaryState: 'ready' })
   },
 
   // 今日漏服提醒（M2a）：cron 翻转的 missed 剂量数 → 顶部红条

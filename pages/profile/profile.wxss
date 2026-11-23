@@ -3,7 +3,19 @@
 .row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
   padding: 12rpx 0;
+}
+
+.row .label {
+  flex-shrink: 0;
+}
+
+.row > text:last-child {
+  min-width: 0;
+  text-align: right;
+  word-break: break-all;
 }
 
 .label {
@@ -37,7 +49,9 @@
 
 .member-name {
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 .self-tag {
@@ -54,6 +68,7 @@
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-top: 4rpx;
+  line-height: 1.45;
 }
 
 .member-actions {
@@ -80,3 +95,14 @@
   color: #C7C7CC;
   font-size: var(--font-lg);
 }
+
+.preference-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.preference-copy { flex: 1; min-width: 0; }
+.preference-title { font-size: var(--font-md); font-weight: 600; }
+.preference-hint { margin-top: 6rpx; color: var(--color-text-3); font-size: var(--font-xs); line-height: 1.45; }

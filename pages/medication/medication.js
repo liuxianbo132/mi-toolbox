@@ -30,6 +30,7 @@ function dayRange(now) {
 
 Page({
   data: {
+    largeText: false,
     authState: 'checking', // checking | signed-out | no-household | ready
     loginLoading: false,
     loginError: '',
@@ -41,6 +42,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ largeText: getApp().globalData.largeText })
     this.restore()
   },
 

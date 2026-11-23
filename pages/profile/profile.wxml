@@ -1,10 +1,21 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <view class="app-title">小咪工具箱</view>
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
+<block wx:elif="{{authState === 'signed-out'}}">
+  <view class="card login-card">
+    <view class="app-title">小咪工具箱</view>
+    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+  </view>
+
+  <view class="card preference-card">
+    <view class="preference-copy">
+      <view class="preference-title">大字模式</view>
+      <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
+    </view>
+    <switch checked="{{largeText}}" color="#007AFF" bindchange="onLargeTextChange" />
+  </view>
+</block>
 
 <view wx:else>
   <view class="card">
@@ -19,6 +30,14 @@
     <view class="row" wx:if="{{!household}}">
       <text class="label">家庭</text><text>未加入，请到「临期看板」创建</text>
     </view>
+  </view>
+
+  <view class="card preference-card">
+    <view class="preference-copy">
+      <view class="preference-title">大字模式</view>
+      <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
+    </view>
+    <switch checked="{{largeText}}" color="#007AFF" bindchange="onLargeTextChange" />
   </view>
 
   <!-- 成员管理（ruling 前端清单 #5）：member 退出家庭 / owner 移除成员，owner 不显示退出入口 -->
@@ -51,4 +70,5 @@
   <view class="card">
     <button class="btn-danger" bindtap="onSignOut">退出登录</button>
   </view>
+</view>
 </view>

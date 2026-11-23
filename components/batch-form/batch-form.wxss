@@ -10,9 +10,15 @@
 
 .bf-mode-item {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  box-sizing: border-box;
   text-align: center;
-  padding: 12rpx 0;
+  padding: 8rpx 4rpx;
   font-size: var(--font-sm);
+  line-height: 1.35;
   color: var(--color-text-2);
   border-radius: 6rpx;
 }
@@ -40,15 +46,22 @@
 
 .bf-flex {
   flex: 1;
+  min-width: 0;
 }
 
 .bf-picker {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  box-sizing: border-box;
   background: var(--color-bg);
   border: 1rpx solid transparent;
   border-radius: var(--radius-sm);
-  padding: var(--space-2) 20rpx;
+  padding: 8rpx 20rpx;
   font-size: var(--font-md);
+  line-height: 1.4;
   color: var(--color-text-1);
+  word-break: break-all;
 }
 
 .bf-placeholder {
@@ -56,6 +69,8 @@
 }
 
 .bf-ipt {
+  min-height: 88rpx;
+  box-sizing: border-box;
   background: var(--color-bg);
   border: 1rpx solid transparent;
   border-radius: var(--radius-sm);
@@ -74,4 +89,27 @@
   color: var(--color-text-3);
   font-size: var(--font-xs);
   margin-bottom: var(--space-2);
+}
+
+.bf-large .bf-mode-item {
+  font-size: 28rpx;
+}
+
+.bf-large .bf-label {
+  font-size: 28rpx;
+}
+
+.bf-large .bf-picker,
+.bf-large .bf-ipt {
+  min-height: 100rpx;
+  font-size: 32rpx;
+}
+
+.bf-large .bf-calc {
+  font-size: 32rpx;
+}
+
+.bf-large .bf-hint {
+  font-size: 28rpx;
+  line-height: 1.6;
 }

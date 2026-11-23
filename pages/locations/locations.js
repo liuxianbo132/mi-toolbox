@@ -2,9 +2,10 @@ const { cloud } = require('../../utils/cloud')
 const { locationsAccess, batchesAccess } = require('../../utils/data-access')
 
 // 存放位置管理（v2-brief Step2）：列表 + 新增 + 改名 + 删除
-// 删除策略（契约 v1.8）：先把该位置下批次的 location_id 置空，再删位置；任何一批置空失败即中止
+// 删除策略（契约 v1.8）：直接删除位置记录；相关批次保留悬空 location_id，界面显示为「未指定」
 Page({
   data: {
+    largeText: false,
     authState: 'checking', // checking | signed-out | no-household | ready
     loginLoading: false,
     loginError: '',
@@ -19,6 +20,7 @@ Page({
   },
 
   onLoad() {
+    this.setData({ largeText: getApp().globalData.largeText })
     this.restore()
   },
 

@@ -4,6 +4,7 @@ const { allergiesAccess } = require('../../utils/data-access')
 // 过敏档案（m2-brief #6）：本人可增删自己的过敏原；owner 可代管家庭成员（member_id 关联）
 Page({
   data: {
+    largeText: false,
     authState: 'checking', // checking | signed-out | no-household | forbidden | ready
     loginLoading: false,
     loginError: '',
@@ -16,6 +17,7 @@ Page({
   },
 
   onLoad(options) {
+    this.setData({ largeText: getApp().globalData.largeText })
     this.setData({
       memberId: options.member_id || null,
       memberName: decodeURIComponent(options.nickname || ''),

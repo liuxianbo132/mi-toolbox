@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
@@ -14,6 +15,7 @@
       <image class="recognize-ico" src="/assets/icons/camera.svg" />
       <text>拍照识别（自动填名称 / 品类 / 保质期）</text>
     </button>
+    <view class="recognize-hint">照片会上传云端用于识别，请避免拍到人脸或个人信息</view>
     <view class="form-row">
       <text class="f-label">名称</text>
       <input class="ipt" value="{{name}}" bindinput="onNameInput" placeholder="如 鲜牛奶" />
@@ -47,7 +49,9 @@
 
   <view class="card">
     <view class="card-title">首批批次</view>
-    <batch-form id="batchForm" default-unit="{{unit}}" locations="{{locations}}"></batch-form>
+    <batch-form id="batchForm" default-unit="{{unit}}" locations="{{locations}}" large-text="{{largeText}}"></batch-form>
     <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="onSaveTap">保存</button>
   </view>
+</view>
+
 </view>

@@ -63,6 +63,11 @@ page {
   box-shadow: var(--shadow-card);
 }
 
+/* 全局交互反馈与统一页面节奏 */
+button { transition: opacity 0.15s ease, background-color 0.15s ease; }
+input, picker { box-sizing: border-box; }
+.hint-sm { line-height: 1.6; }
+
 /* ===== 按钮（Apple 触控尺寸 44px，圆角 10px，按压轻压） ===== */
 
 .btn-primary,
@@ -86,7 +91,7 @@ button[size="mini"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 60rpx;
+  min-height: 88rpx;
   line-height: 1;
   padding: 0 20rpx;
   font-size: var(--font-sm);
@@ -171,6 +176,7 @@ button[size="mini"] {
 
 .ipt {
   flex: 1;
+  min-height: 88rpx;
   background: rgba(120, 120, 128, 0.08);
   border: 1rpx solid transparent;
   border-radius: var(--radius-md);
@@ -181,7 +187,7 @@ button[size="mini"] {
 }
 
 .f-label {
-  width: 110rpx;
+  width: 132rpx;
   color: var(--color-text-2);
   font-size: var(--font-sm);
   flex-shrink: 0;
@@ -332,4 +338,107 @@ button[size="mini"] {
   line-height: 1;
   margin-bottom: var(--space-2);
   opacity: 0.55;
+}
+
+.card + .card { margin-top: var(--space-3); }
+
+/* 本机偏好：大字模式只调整字号、行距与触控尺寸，不缩放页面布局。 */
+.large-text { font-size: 34rpx; line-height: 1.55; }
+.large-text .card-title,
+.large-text .section-title,
+.large-text .detail-name,
+.large-text .hero-title,
+.large-text .hero-sub,
+.large-text .section-title,
+.large-text .row-name,
+.large-text .row-sub,
+.large-text .quick-label,
+.large-text .stat-label,
+.large-text .item-name,
+.large-text .dose-name,
+.large-text .plan-name,
+.large-text .member-name,
+.large-text .preference-title { font-size: 38rpx; line-height: 1.4; }
+.large-text .item-meta,
+.large-text .dose-meta,
+.large-text .plan-meta,
+.large-text .member-meta,
+.large-text .rec-meta,
+.large-text .rec-time,
+.large-text .hint-sm,
+.large-text .form-hint,
+.large-text .preference-hint,
+.large-text .center-hint { font-size: 28rpx; line-height: 1.6; }
+.large-text .label,
+.large-text .f-label,
+.large-text .loc-badge,
+.large-text .filter-value,
+.large-text .tag-red,
+.large-text .tag-amber,
+.large-text .tag-green { font-size: 28rpx; }
+.large-text .ipt,
+.large-text input,
+.large-text picker { font-size: 32rpx; }
+.large-text .btn-primary,
+.large-text .btn-ghost,
+.large-text .btn-warn,
+.large-text .btn-danger { min-height: 100rpx; font-size: 34rpx; line-height: 1.35; }
+.large-text button[size="mini"] { min-height: 88rpx; padding-right: 24rpx; padding-left: 24rpx; font-size: 28rpx; }
+.large-text .item-row,
+.large-text .dose-row,
+.large-text .plan-row,
+.large-text .rec-row,
+.large-text .loc-row,
+.large-text .member-row,
+.large-text .allergen-row,
+.large-text .quick-item { min-height: 104rpx; }
+.large-text .hero-title { font-size: 52rpx; }
+.large-text .hero-sub,
+.large-text .row-sub { font-size: 30rpx; }
+.large-text .row-name { font-size: 38rpx; }
+.large-text .quick-label,
+.large-text .stat-label { font-size: 28rpx; }
+.large-text .filter-row { flex-wrap: wrap; }
+.large-text .filter-picker { min-width: 46%; }
+.large-text .limit-hint { font-size: 28rpx; line-height: 1.6; }
+
+/* 大字模式下仍带显式小字号的二级信息与状态标签 */
+.large-text .alert-text,
+.large-text .dose-time,
+.large-text .batch-line,
+.large-text .plan-line-title,
+.large-text .link-allergen,
+.large-text .allergen-name,
+.large-text .loc-name,
+.large-text .rec-item,
+.large-text .empty-text {
+  font-size: 32rpx;
+  line-height: 1.5;
+}
+
+.large-text .section-more,
+.large-text .zone-title,
+.large-text .row-tag,
+.large-text .empty-hint,
+.large-text .empty-inline,
+.large-text .streak-text,
+.large-text .streak-hint,
+.large-text .divider,
+.large-text .loc-entry,
+.large-text .group-head,
+.large-text .batch-sub,
+.large-text .plan-line-meta,
+.large-text .opened-tag,
+.large-text .bc-qty,
+.large-text .bc-loc,
+.large-text .fold-arrow,
+.large-text .plan-freq,
+.large-text .rec-open,
+.large-text .rec-ghost,
+.large-text .self-tag,
+.large-text .member-empty,
+.large-text .scan-code,
+.large-text .recognize-hint {
+  font-size: 28rpx;
+  line-height: 1.6;
 }

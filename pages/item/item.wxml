@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{loading}}" class="center">加载中…</view>
 
 <view wx:elif="{{!item}}" class="card center-hint">物品不存在或已被删除</view>
@@ -102,7 +103,7 @@
     </view>
 
     <view wx:if="{{addingBatch}}" class="card">
-      <batch-form id="addBatchForm" default-unit="{{item.unit}}" locations="{{locations}}"></batch-form>
+      <batch-form id="addBatchForm" default-unit="{{item.unit}}" locations="{{locations}}" large-text="{{largeText}}"></batch-form>
       <button class="btn-primary add-save" loading="{{addSaving}}" disabled="{{addSaving}}" bindtap="saveNewBatch">保存批次</button>
     </view>
 
@@ -170,4 +171,5 @@
   <view class="card">
     <button class="btn-danger del-btn" bindtap="deleteItem">删除物品</button>
   </view>
+</view>
 </view>

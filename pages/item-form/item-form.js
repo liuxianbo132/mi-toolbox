@@ -6,6 +6,7 @@ const { recognizeFromImage } = require('../../utils/vision')
 
 Page({
   data: {
+    largeText: false,
     authState: 'checking', // checking | signed-out | no-household | ready
     loginError: '',
     loginLoading: false,
@@ -23,6 +24,10 @@ Page({
     barcode: '',
     // 视觉录入进行中
     recognizing: false,
+  },
+
+  onShow() {
+    this.setData({ largeText: getApp().globalData.largeText })
   },
 
   onLoad(options) {
@@ -141,7 +146,7 @@ Page({
     if (bf && bf.applyRecognized) {
       bf.applyRecognized({ productionDate: d.productionDate, shelfLifeDays: d.shelfLifeDays })
     }
-    const got = !!(d.name || d.category || d.shelfLifeDays)
+    const got = !!(d.name || d.category || d.shelfLifeDays || d.productionDate)
     wx.showToast({ title: got ? '已识别，请核对' : '未识别到信息，请手动填写', icon: 'none' })
   },
 

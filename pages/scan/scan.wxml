@@ -1,3 +1,4 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
 <view wx:if="{{status === 'scanning'}}" class="center">正在启动扫码…</view>
 
 <view wx:elif="{{status === 'error'}}" class="card center-hint">
@@ -10,10 +11,11 @@
 </view>
 
 <view wx:elif="{{status === 'no-household'}}" class="card center-hint">
-  <view>请先在「临期看板」创建或加入家庭</view>
+  <view>先到「临期看板」创建家庭，或用家人分享的邀请码加入，再回来扫码录入</view>
   <view class="scan-actions">
     <button size="mini" class="btn-primary" bindtap="goBack">返回</button>
   </view>
 </view>
 
 <view wx:else class="center">处理中…</view>
+</view>
