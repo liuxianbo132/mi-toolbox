@@ -40,4 +40,30 @@ function findOriginal(stamp) {
     // 原图移入 .workbuddy/tmp（gitignore 覆盖），保留可追溯、不入库
     fs.renameSync(src, path.join(ORIGINALS, path.basename(src)))
   }
+
+  // 物品级插画：raw/<key>/*.png → v2/<key>.png（目录名即语义名，避免时间戳文件名）
+  const RAW = path.join(ROOT, 'assets', 'illustrations', 'raw')
+  const KEYS = ['yogurt', 'egg', 'bread', 'fruit', 'veggie', 'snack', 'drink', 'tablet', 'tissue', 'shampoo']
+  for (const key of KEYS) {
+    const dir = path.join(RAW, key)
+    if (!fs.existsSync(dir)) {
+      console.log('SKIP ' + key + ' (raw dir not found)')
+      continue
+    }
+    const file = fs.readdirSync(dir).filter(function (f) { return f.endsWith('.png') })[0]
+    if (!file) {
+      console.log('SKIP ' + key + ' (no png)')
+      continue
+    }
+    const src = path.join(dir, file)
+    const out = path.join(SRC, key + '.png')
+    await sharp(src)
+      .resize(256, 256, { fit: 'cover' })
+      .png({ compressionLevel: 9, palette: true, quality: 80 })
+      .toFile(out)
+    console.log('OK ' + key + '.png  ' + Math.round(fs.statSync(out).size / 1024) + ' KB')
+    const keep = path.join(ORIGINALS, 'raw-' + key)
+    fs.mkdirSync(keep, { recursive: true })
+    fs.renameSync(src, path.join(keep, file))
+  }
 })()

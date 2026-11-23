@@ -1,5 +1,5 @@
 const { cloud } = require('../../utils/cloud')
-const { CATEGORIES, categoryLabel, categoryIllustration } = require('../../utils/constants')
+const { CATEGORIES, categoryLabel, categoryIllustration, itemIllustration } = require('../../utils/constants')
 
 // 低库存口径：active 批次 quantity 之和 ≤ 阈值即库存不足；
 // 阈值缺省（未设置）回落 0 —— 即「用光才提醒」，避免"只剩 1 件"把正常家庭物品全标成不足
@@ -110,6 +110,7 @@ Page({
         .from('items')
         .select('id, name, category, unit, brand, spec, barcode, created_at, low_stock_threshold')
         .eq('household_id', hid)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .order('id', { ascending: false })
         .range(from, Math.min(from + pageSize - 1, maxItems))
@@ -149,6 +150,7 @@ Page({
         .select('id, item_id, location_id, expiry_date, status, quantity')
         .eq('household_id', hid)
         .eq('status', 'active')
+        .eq('is_deleted', false)
         .order('expiry_date', { ascending: true })
         .order('id', { ascending: true })
         .range(from, Math.min(from + batchPageSize - 1, maxBatches))
@@ -196,6 +198,7 @@ Page({
         earliestExpiry: earliestExpiry[row.id] || '',
         totalQty: itemQty,
         lowStock: itemQty <= lowStockThreshold(row.low_stock_threshold),
+        illu: itemIllustration(row.name, row.category),
         stockText: itemQty === 0 ? '已用完' : '仅剩 ' + itemQty + (row.unit ? ' ' + row.unit : ''),
       })
     })

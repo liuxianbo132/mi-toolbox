@@ -7,8 +7,8 @@ const { cloud } = require('./cloud')
 // id 必须包含：create() 的 .insert().select(columns) 靠它把自增主键带回（否则 created.data.id 缺失）
 // 写路径安全性：pickFields 跳过 undefined，payload 不带 id 时 id 不会进入 insert（自增不受影响）
 // production_date：生产日期（calc 模式录入，direct 模式存 null）；需后端 batches 同步加列后生效
-const ITEM_FIELDS = ['id', 'household_id', 'name', 'category', 'unit', 'brand', 'spec', 'barcode']
-const BATCH_FIELDS = ['id', 'household_id', 'item_id', 'expiry_date', 'production_date', 'quantity', 'unit', 'status', 'opened_at', 'location_id']
+const ITEM_FIELDS = ['id', 'household_id', 'name', 'category', 'unit', 'brand', 'spec', 'barcode', 'is_deleted', 'deleted_at']
+const BATCH_FIELDS = ['id', 'household_id', 'item_id', 'expiry_date', 'production_date', 'quantity', 'unit', 'status', 'opened_at', 'location_id', 'owner_name', 'is_deleted', 'deleted_at']
 
 function pickFields(fields) {
   return function (payload) {
@@ -90,6 +90,7 @@ const recordsAccess = createTableAccess(cloud, {
 
 // 静默写流水：主操作成功后 fire-and-forget 调用；任何失败仅 console 警告，绝不抛出、不阻塞主操作
 // owner_id/owner_name 取当前 session 快照；空字段直接不传（pickFields 只跳过 undefined，null 会撞 NOT NULL）
+// v1.9：owner_name 优先取 payload.ownerName，其次 globalData.myNickname（members 昵称），最后回退 session 用户名
 async function logRecord(entry) {
   try {
     const payload = {
@@ -99,11 +100,23 @@ async function logRecord(entry) {
     if (entry.batchId != null) payload.batch_id = entry.batchId
     if (entry.quantity != null) payload.quantity = entry.quantity
     if (entry.note) payload.note = entry.note
+    let ownerName = entry.ownerName ? String(entry.ownerName).trim() : ''
+    if (!ownerName) {
+      try {
+        const app = getApp()
+        if (app && app.globalData && app.globalData.myNickname) {
+          ownerName = String(app.globalData.myNickname).trim()
+        }
+      } catch (e) {
+        // getApp 未就绪（如 App 初始化前）时静默回退
+      }
+    }
     const { data: session } = await cloud.auth.getSession()
     const uid = session && session.user && session.user.id
     const uname = (session && session.user && session.user.name) || null
+    if (!ownerName && uname) ownerName = uname
     if (uid) payload.owner_id = uid
-    if (uname) payload.owner_name = uname
+    if (ownerName) payload.owner_name = ownerName
     const res = await recordsAccess.create(payload)
     if (res.error) console.warn('[records] write failed (silent):', res.error)
     return res

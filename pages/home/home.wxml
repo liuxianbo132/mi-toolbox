@@ -28,7 +28,7 @@
   <view class="topbar" bindtap="goProfile">
     <view class="brand">
       <view class="brand-badge">
-        <image class="brand-ico" src="/assets/icons/shield.svg" />
+        <image class="brand-ico" src="/assets/icons/home-white.svg" />
       </view>
       <text class="brand-name">{{household.name}}</text>
       <image class="brand-arrow" src="/assets/icons/chevron.svg" />
@@ -41,28 +41,22 @@
     <view class="hero-sub">让家庭生活更安心</view>
   </view>
 
-  <!-- 统计三卡 -->
+  <!-- 统计三卡（实心圆图标 + 黑色数字 + 彩色标签，对齐参考图） -->
   <view class="stats-card">
     <view class="stat-cell">
-      <view class="stat-badge badge-red">
-        <image class="stat-ico" src="/assets/icons/alertCircle-red.svg" />
-      </view>
-      <view class="stat-num red">{{stats.expired}}</view>
-      <view class="stat-label">已过期</view>
+      <image class="stat-solid" src="/assets/icons/solid-red.svg" />
+      <view class="stat-num">{{stats.expired}}</view>
+      <view class="stat-label label-red">已过期</view>
     </view>
     <view class="stat-cell">
-      <view class="stat-badge badge-amber">
-        <image class="stat-ico" src="/assets/icons/clock-amber.svg" />
-      </view>
-      <view class="stat-num amber">{{stats.danger + stats.warn}}</view>
-      <view class="stat-label">将临期</view>
+      <image class="stat-solid" src="/assets/icons/solid-amber.svg" />
+      <view class="stat-num">{{stats.danger + stats.warn}}</view>
+      <view class="stat-label label-amber">将临期</view>
     </view>
     <view class="stat-cell">
-      <view class="stat-badge badge-green">
-        <image class="stat-ico" src="/assets/icons/checkCircle-green.svg" />
-      </view>
-      <view class="stat-num green">{{stats.safe}}</view>
-      <view class="stat-label">很安全</view>
+      <image class="stat-solid" src="/assets/icons/solid-green.svg" />
+      <view class="stat-num">{{stats.safe}}</view>
+      <view class="stat-label label-green">很安全</view>
     </view>
   </view>
 
@@ -131,7 +125,7 @@
     <view wx:elif="{{medicationSummaryState === 'error'}}" class="empty-inline">今日用药暂时无法加载，请点击查看用药</view>
     <view wx:elif="{{todayDoses.length === 0}}" class="empty-inline">今日暂无用药安排</view>
     <view wx:for="{{todayDoses}}" wx:for-item="d" wx:key="id" class="row dose-row {{index === 0 ? 'dose-featured' : ''}}" bindtap="goMedication">
-      <image class="row-illu" src="/assets/illustrations/v2/medicine.png" mode="aspectFit" />
+      <image class="row-illu" src="{{d.illu}}" mode="aspectFit" />
       <view class="row-main">
         <view class="row-name">{{d.name}}</view>
         <view class="row-sub" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>

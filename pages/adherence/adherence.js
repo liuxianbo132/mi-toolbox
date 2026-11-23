@@ -149,6 +149,7 @@ Page({
         .lt('scheduled_at', until.toISOString())
         .order('scheduled_at', { ascending: true })
         .limit(1000),
+      // 名称映射不过滤 is_deleted（契约 v2.0）：已删药品的历史统计仍需显示原名
       cloud.database
         .from('items')
         .select('id, name')

@@ -69,6 +69,7 @@ Page({
       .from('items')
       .select('id, household_id, name, category, unit, brand, spec, pao_days')
       .eq('id', this.data.itemId)
+      .eq('is_deleted', false)
       .limit(1)
     if (error) {
       this.setData({ loading: false })
@@ -85,6 +86,7 @@ Page({
       .from('batches')
       .select('id, item_id, expiry_date, opened_at, quantity, unit, status, location_id')
       .eq('item_id', this.data.itemId)
+      .eq('is_deleted', false)
       .order('expiry_date', { ascending: true })
       .limit(200)
     if (batchError) {
@@ -458,6 +460,8 @@ Page({
     }
     if (this.data.addSaving) return
     this.setData({ addSaving: true })
+    // v1.9：批次写入时快照家庭内昵称（未设置则省略该字段）
+    const myNickname = getApp().globalData.myNickname || ''
     const created = await batchesAccess.create({
       household_id: item.household_id,
       item_id: item.id,
@@ -467,6 +471,7 @@ Page({
       unit: res.data.unit,
       status: 'active',
       location_id: res.data.location_id,
+      owner_name: myNickname || undefined,
     })
     this.setData({ addSaving: false })
     if (created.error || !created.data) {
@@ -611,26 +616,27 @@ Page({
   },
 
   async deleteBatch(id) {
-    const res = await batchesAccess.remove(id)
+    // 契约 v2.0：软删除——移入回收站，可恢复
+    const res = await batchesAccess.update(id, { is_deleted: true, deleted_at: new Date().toISOString() })
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
       return
     }
-    wx.showToast({ title: '已删除', icon: 'success' })
+    wx.showToast({ title: '已移入回收站', icon: 'success' })
     this.loadAll()
   },
 
-  // ===== 删除物品 =====
-  // 批次与物品分开删（客户端级联）：先删批次，任何一条失败即中止，避免孤儿数据
+  // ===== 删除物品（软删，契约 v2.0） =====
+  // 批次与物品分开处理（客户端级联）：先软删批次，任何一条失败即中止，避免半成品
 
   deleteItem() {
     const that = this
     const count = this.data.activeBatches.length + this.data.historyBatches.length
     wx.showModal({
-      title: '删除物品',
+      title: '移入回收站',
       content: count > 0
-        ? '将同时删除该物品的 ' + count + ' 条批次记录，且不可恢复'
-        : '删除后不可恢复',
+        ? '将同时移入回收站：该物品的 ' + count + ' 条批次记录（可在「回收站」恢复）'
+        : '可在「回收站」恢复',
       confirmColor: '#A32D2D',
       success(res) {
         if (!res.confirm) return
@@ -640,23 +646,24 @@ Page({
   },
 
   async removeItemCascade() {
-    wx.showLoading({ title: '删除中', mask: true })
+    wx.showLoading({ title: '处理中', mask: true })
     const ids = this.data.activeBatches.concat(this.data.historyBatches).map(function (b) { return b.id })
+    const now = new Date().toISOString()
     for (let i = 0; i < ids.length; i++) {
-      const res = await batchesAccess.remove(ids[i])
+      const res = await batchesAccess.update(ids[i], { is_deleted: true, deleted_at: now })
       if (res.error || !res.data) {
         wx.hideLoading()
-        wx.showToast({ title: '批次删除失败，已中止物品删除', icon: 'none' })
+        wx.showToast({ title: '批次移入回收站失败，已中止', icon: 'none' })
         return
       }
     }
-    const res = await itemsAccess.remove(this.data.itemId)
+    const res = await itemsAccess.update(this.data.itemId, { is_deleted: true, deleted_at: now })
     wx.hideLoading()
     if (res.error || !res.data) {
       wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
       return
     }
-    wx.showToast({ title: '已删除', icon: 'success' })
+    wx.showToast({ title: '已移入回收站', icon: 'success' })
     setTimeout(function () { wx.navigateBack() }, 600)
   },
 })

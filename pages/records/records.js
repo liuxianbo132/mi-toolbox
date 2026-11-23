@@ -21,6 +21,16 @@ Page({
     loginLoading: false,
     loginError: '',
     records: [],
+    // 筛选：rawRecords 存全量映射结果，records 为按 filter 过滤后的展示列表
+    rawRecords: [],
+    filter: 'all',
+    filters: [
+      { key: 'all', label: '全部' },
+      { key: 'create', label: '入库' },
+      { key: 'open', label: '开封' },
+      { key: 'use_up', label: '用完' },
+      { key: 'discard', label: '报废' },
+    ],
     // 本月概览（records 聚合：四类动作 + 消耗率 + 报废提示）
     summary: null,
   },
@@ -91,6 +101,7 @@ Page({
     const records = (data || []).map(function (r) {
       return {
         id: r.id,
+        action: r.action,
         actionLabel: ACTION_LABEL[r.action] || r.action,
         actionClass: ACTION_CLASS[r.action] || 'rec-ghost',
         itemName: r.note || '—',
@@ -99,7 +110,26 @@ Page({
         timeText: formatTime(r.created_at),
       }
     })
+    this.setData({ rawRecords: records }, () => this.applyFilter())
+  },
+
+  // 纯前端筛选：all 展示全部，其余按 action 精确匹配
+  applyFilter() {
+    const filter = this.data.filter
+    const raw = this.data.rawRecords || []
+    const records =
+      filter === 'all'
+        ? raw
+        : raw.filter(function (r) {
+            return r.action === filter
+          })
     this.setData({ records: records })
+  },
+
+  onfilter(e) {
+    const key = e.currentTarget.dataset.key
+    if (!key || key === this.data.filter) return
+    this.setData({ filter: key }, () => this.applyFilter())
   },
 
   // 本月概览：四类动作计数 + 消耗率（用完 ÷（用完+报废））+ 报废涉及物品数

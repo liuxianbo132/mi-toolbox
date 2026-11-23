@@ -80,6 +80,14 @@
   min-height: 112rpx;
 }
 
+/* 物品级插画（按名称关键词匹配，未命中回落品类图） */
+.item-illu {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 18rpx;
+  flex-shrink: 0;
+}
+
 .item-main {
   flex: 1;
   min-width: 0;

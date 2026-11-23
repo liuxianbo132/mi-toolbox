@@ -60,6 +60,7 @@ Page({
       .select('id, name, barcode')
       .eq('household_id', ctx.householdId)
       .eq('barcode', value)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(1)
     if (error) {

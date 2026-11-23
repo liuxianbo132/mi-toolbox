@@ -1,4 +1,4 @@
-# 小咪工具箱 · 数据契约 v1.8
+# 小咪工具箱 · 数据契约 v2.0
 
 > 本文件是前端/后端/测试三个窗口的唯一对齐依据。字段命名冲突、结构变更，一律回总控窗口裁决后更新此文件并递增版本号。
 > **v1.1 变更（2026-11-19，后端窗口校对回写）**：「现有表」整节按实际库重写——补录契约漏掉的 `locations`、`records` 两张表与各表缺失字段；`members` 时间字段实为 `joined_at`（v1 写 `created_at` 是笔误）；补录 RLS 实况与辅助函数。「新增表 / 常量 / 推送链路」三节未动。
@@ -9,6 +9,7 @@
 > **v1.6 变更（2026-11-20，环境身份收敛，总控批准 R6）**：双应用错位修复——生产应用切换为 **wbapp_r53cbHLLmYxU6r3LT4wbA6**（已绑定小程序 + 云服务已开通），`utils/cloud.js` publicConfig 三值随之更换；**wbapp_mCzPMhf3up1PsJr96aYq59 冻结为存档**（勿删勿改，仅作 schema/RPC 权威参照）。新增「环境身份」节；SQL 留档纪律升级：基础 schema 必须补录 02-base-schema.sql。
 > **v1.7 变更（2026-11-20，总控裁决 R7 · M2 裁决包）**：①#14 cron 周期定档 5 分钟（判定延迟上界 = 阈值 + 5 分钟）；②#5 doses 整疗程一次性生成（保存计划时即时生成），疗程上限 180 天；③#6 计划变更 = 删未发生 pending doses 重建，历史 taken/missed 保留，start_date 早于今天不补历史；④#9 alternate_day = start_date + 2n 日历日，非服药日不生成；⑤#10 miss_threshold_minutes 前端限 10~120（步进 5）默认 30，DB 无 CHECK。
 > **v1.8 变更（2026-11-21，V2 方案定稿）**：新增「V2 约定」节——records.action 四类枚举与静默失败语义、locations 使用口径与删除置空、barcode 扫码匹配规则、库存按品类分组与位置角标规则。
+> **v2.0 变更（2026-11-23，回收站立项 · 软删除）**：`items` / `batches` 新增 `is_deleted boolean NOT NULL DEFAULT false` 与 `deleted_at timestamptz`（`sql/06-soft-delete.sql`）。删除操作一律软删（`is_deleted=true` + `deleted_at=now`）；**所有用户可见读取必须 `.eq('is_deleted', false)`**；回收站页（`pages/trash`）可恢复（仅写 `is_deleted=false`）或彻底删除（物理 DELETE，二次确认）。例外：`records` 与 `locations` 不参与软删；历史名称映射类查询（依从性页、首页今日用药、用药页的 items 名映射）**不过滤**，保证已删药品的历史显示；数据导出包含已删数据（备份完整性）。`ITEM_FIELDS` / `BATCH_FIELDS` 白名单包含 `is_deleted` / `deleted_at`。
 
 ## 环境身份（v1.6）
 
@@ -28,7 +29,7 @@
 ## 现有表（2026-11-19 后端窗口按实际库校对，以下为真实结构）
 
 - `households`: id(bigint PK), owner_id(text NOT NULL default auth.uid() 家庭创建者), name(text NOT NULL), invite_code(text NOT NULL UNIQUE), created_at
-- `members`: id(bigint PK), household_id(bigint NOT NULL FK→households ON DELETE CASCADE), owner_id(text NOT NULL default auth.uid()), role(text NOT NULL default 'member'，约定 'owner'|'member'), nickname(text NULL), **joined_at**(timestamptz NOT NULL default now()，**v1 写 created_at 是笔误，以 joined_at 为准**)
+- `members`: id(bigint PK), household_id(bigint NOT NULL FK→households ON DELETE CASCADE), owner_id(text NOT NULL default auth.uid()), role(text NOT NULL default 'member'，约定 'owner'|'member'), nickname(text NULL，v1.9 起为家庭内昵称，本人可设置/修改), **joined_at**(timestamptz NOT NULL default now()，**v1 写 created_at 是笔误，以 joined_at 为准**)
   - UNIQUE (household_id, owner_id) —— 防重复加入；索引 idx_members_owner(owner_id)
 - `items`: id(bigint PK), household_id(bigint NOT NULL), name(text NOT NULL), barcode(text NULL), category(text NOT NULL default 'food'，约定 food/medicine/daily/other), brand(text NULL), spec(text NULL), unit(text NULL default '件'), shelf_life_days(int NULL), pao_days(int NULL), low_stock_threshold(int NULL), remark(text NULL), created_at
   - 索引 idx_items_household(household_id)
@@ -53,6 +54,12 @@
 - **member 退出**：删除自身 members 记录；退出后按 RLS 自动失去该家庭全部数据可见性；物品属于家庭，不迁移不带走
 - **owner 移除成员**：仅限本家庭 role='member' 的目标；被移除者可见性同上
 - **owner 不可退出/解散**：V1 不做（级联删除是独立产品题）；前端对 owner 隐藏退出入口，误加死胡同由「退出/移除」两个能力关闭
+
+### 昵称约定（v1.9）
+
+- `members.nickname` 为家庭内昵称，**本人可设置/修改**（members RLS 允许本人 UPDATE 自己那一行，WITH CHECK `owner_id = auth.uid()`，无需数据库变更）
+- `records.owner_name` 与 `batches.owner_name` 在**写入时快照当时昵称**（优先取 `members.nickname`；未设置时回退 session 用户名；仍为空则省略该字段）
+- **历史记录不回溯**：修改昵称只影响之后新写入的流水与批次，已落库的 owner_name 保持原值
 
 ### RLS 实况（6 表全部启用 relrowsecurity）
 
@@ -81,6 +88,14 @@
 - **存放位置 `locations`**：V2 只用 `name`（kind 保留表默认 `'pantry'`，不做分类展示/筛选）；批次挂 `batches.location_id`（可选，未选 = 未指定）；**删除位置后，该家庭内相关批次的 location_id 置空**（前端先置空再删，或删后按「未指定」展示）
 - **条码 `items.barcode`**：扫码匹配限同 household 内，不加唯一约束；多命中取最近创建；扫码仅真机可用（开发者工具模拟器不支持 scanCode）
 - **库存展示**：按品类分组（food / medicine / daily / other，组头带计数）；位置角标取该物品 active 批次的位置，多位置显示「多位置」、无位置显示「未指定」
+
+## 软删除约定（v2.0）
+
+- **字段**：`items.is_deleted` / `batches.is_deleted`（boolean 默认 false）+ `deleted_at`（timestamptz，仅用于展示删除时间）
+- **读取**：所有用户可见查询必须 `.eq('is_deleted', false)`；回收站页查询 `is_deleted = true`
+- **删除**：一律软删（`is_deleted = true` + `deleted_at = now`）；彻底删除只在回收站内二次确认后物理 DELETE
+- **恢复**：只写 `is_deleted = false`——`deleted_at` 残留旧值不参与任何判断（SDK 会丢弃 null，不可用置空策略）
+- **例外**：`records` / `locations` 不参与软删；依从性页、首页今日用药、用药页的 items 名称映射**不过滤**（保证已删药品的历史显示）；数据导出包含已删数据（备份完整性）
 
 ## 常量（前后端共用，测试据此写用例）
 

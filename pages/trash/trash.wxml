@@ -1,0 +1,47 @@
+<view class="page-root {{largeText ? 'large-text' : ''}}">
+<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+
+<view wx:elif="{{authState === 'signed-out'}}" class="card center-hint">请先登录后查看</view>
+
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+
+<view wx:else>
+  <view class="card">
+    <view class="card-title">回收站</view>
+    <view class="hint-sm">这里的物品仍占用家庭库存，确认不再需要后再彻底删除。彻底删除后不可恢复。</view>
+  </view>
+
+  <view wx:if="{{itemRows.length > 0}}" class="card">
+    <view class="card-title">物品（{{itemRows.length}}）</view>
+    <view wx:for="{{itemRows}}" wx:for-item="r" wx:key="id" class="trash-row">
+      <view class="trash-main">
+        <view class="trash-title">{{r.name}}</view>
+        <view class="trash-meta">{{r.categoryText}} · 删除于 {{r.deletedText}}</view>
+      </view>
+      <view class="trash-actions">
+        <button size="mini" class="btn-ghost" data-id="{{r.id}}" disabled="{{busy}}" bindtap="onrestoreitem">恢复</button>
+        <button size="mini" class="btn-danger" data-id="{{r.id}}" disabled="{{busy}}" bindtap="onpurgeitem">彻底删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{batchRows.length > 0}}" class="card">
+    <view class="card-title">批次（{{batchRows.length}}）</view>
+    <view wx:for="{{batchRows}}" wx:for-item="r" wx:key="id" class="trash-row">
+      <view class="trash-main">
+        <view class="trash-title">
+          {{r.itemName}}
+          <text wx:if="{{r.expired}}" class="tag-red trash-tag">已过期</text>
+        </view>
+        <view class="trash-meta">到期 {{r.expiryText}} · 删除于 {{r.deletedText}}</view>
+      </view>
+      <view class="trash-actions">
+        <button size="mini" class="btn-ghost" data-id="{{r.id}}" disabled="{{busy}}" bindtap="onrestorebatch">恢复</button>
+        <button size="mini" class="btn-danger" data-id="{{r.id}}" disabled="{{busy}}" bindtap="onpurgebatch">彻底删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{itemRows.length === 0 && batchRows.length === 0}}" class="card center-hint">回收站是空的</view>
+</view>
+</view>

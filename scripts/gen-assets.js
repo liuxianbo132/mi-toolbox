@@ -36,6 +36,14 @@ const icons = {
   edit: '<path d="M4.4 19.6l4.4-1 9.9-9.9a2.05 2.05 0 0 0-2.9-2.9L5.9 15.7l-1.5 3.9z"/>',
   shield: '<path d="M12 3.4l7 3v5.3c0 4.4-2.9 7.6-7 9.3-4.1-1.7-7-4.9-7-9.3V6.4l7-3z"/><path d="M9 12.2l2.2 2.2 4-4.3"/>',
   tray: '<path d="M4 13.4h4.2l1.6 2.6h4.4l1.6-2.6H20"/><path d="M4 13.4 6.3 6.4h11.4L20 13.4v3.9a1.6 1.6 0 0 1-1.6 1.6H5.6A1.6 1.6 0 0 1 4 17.3v-3.9z"/>',
+  homeWhite: '<path d="M3.5 10.4 12 3.5l8.5 6.9V19a1.6 1.6 0 0 1-1.6 1.6h-4.4v-5.8H9.5v5.8H5.1A1.6 1.6 0 0 1 3.5 19v-8.6z"/>',
+}
+
+// 实心语义圆（统计卡）：彩色圆底 + 白色符号，96×96（对应参考图的实体图标）
+const SOLID = {
+  'solid-red': '<circle cx="48" cy="48" r="44" fill="#FF3B30"/><rect x="44" y="24" width="8" height="30" rx="4" fill="#FFFFFF"/><circle cx="48" cy="66" r="5" fill="#FFFFFF"/>',
+  'solid-amber': '<circle cx="48" cy="48" r="44" fill="#FF9500"/><circle cx="48" cy="46" r="19" fill="none" stroke="#FFFFFF" stroke-width="6"/><path d="M48 34v12l8 6" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round"/>',
+  'solid-green': '<circle cx="48" cy="48" r="44" fill="#34C759"/><path d="M30 49l12 12 24-26" stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
 }
 
 // ---------- 品类插画（96x96，轻拟物：柔和渐变 + 分层高光，不用 filter 保证兼容） ----------
@@ -117,6 +125,7 @@ ensureDir(ILL_DIR)
 
 let count = 0
 Object.keys(icons).forEach(function (k) {
+  if (k === 'homeWhite') return // 专用白色描边版，单独生成 home-white.svg，不重复产出
   fs.writeFileSync(path.join(ICON_DIR, k + '.svg'), icon(icons[k], BLUE))
   count++
 })
@@ -139,6 +148,17 @@ const COLORED = {
 Object.keys(COLORED).forEach(function (name) {
   const def = COLORED[name]
   fs.writeFileSync(path.join(ICON_DIR, name + '.svg'), icon(icons[def[0]], def[1]))
+  count++
+})
+
+// 白色描边版（用于蓝色渐变底上的房子图标）
+fs.writeFileSync(path.join(ICON_DIR, 'home-white.svg'), icon(icons.homeWhite, '#FFFFFF'))
+count++
+
+// 实心语义圆（统计卡，96×96，自带圆底）
+Object.keys(SOLID).forEach(function (name) {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">' + SOLID[name] + '</svg>\n'
+  fs.writeFileSync(path.join(ICON_DIR, name + '.svg'), svg)
   count++
 })
 Object.keys(illustrations).forEach(function (k) {

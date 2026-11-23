@@ -186,6 +186,8 @@ Page({
       return
     }
 
+    // v1.9：批次写入时快照家庭内昵称（未设置则省略该字段）
+    const myNickname = getApp().globalData.myNickname || ''
     const batchRes = await batchesAccess.create({
       household_id: this.data.householdId,
       item_id: created.data.id,
@@ -195,6 +197,7 @@ Page({
       unit: res.data.unit,
       status: 'active',
       location_id: res.data.location_id,
+      owner_name: myNickname || undefined,
     })
     this.setData({ saving: false })
 

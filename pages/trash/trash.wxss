@@ -1,0 +1,56 @@
+/* 回收站页；公共类（card、card-title、center-hint、btn-ghost、btn-danger、tag-red）在 app.wxss */
+
+.trash-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1rpx solid var(--color-border);
+}
+
+.trash-row:first-child {
+  border-top: none;
+}
+
+.trash-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.trash-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.trash-tag {
+  margin-left: var(--space-1);
+  font-size: var(--font-xs);
+  font-weight: 500;
+}
+
+.trash-meta {
+  margin-top: 6rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  line-height: 1.45;
+}
+
+.trash-actions {
+  display: flex;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+/* 大字模式：标题与二级信息跟随放大，触控尺寸沿用全局 mini 规则 */
+.large-text .trash-title {
+  font-size: 38rpx;
+  line-height: 1.4;
+}
+
+.large-text .trash-meta {
+  font-size: 28rpx;
+  line-height: 1.6;
+}

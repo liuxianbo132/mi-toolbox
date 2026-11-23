@@ -154,3 +154,32 @@
   line-height: 1.5;
   color: var(--color-text-3);
 }
+
+/* ===== 动作筛选 chips ===== */
+
+.rec-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  padding: 8rpx 0 var(--space-2);
+}
+
+.rec-chip {
+  padding: 8rpx 20rpx;
+  border-radius: var(--radius-sm);
+  background: rgba(120, 120, 128, 0.12);
+  color: var(--color-text-2);
+  font-size: var(--font-xs);
+}
+
+.rec-chip-active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.filter-note {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--color-text-3);
+}

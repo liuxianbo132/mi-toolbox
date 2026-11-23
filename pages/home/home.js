@@ -1,7 +1,7 @@
 const { cloud } = require('../../utils/cloud')
 const { toDateOnly, daysUntil, urgencyLevel, effectiveExpiry } = require('../../utils/date')
 const { askExpirySubscribe } = require('../../utils/subscribe')
-const { categoryLabel, categoryIllustration } = require('../../utils/constants')
+const { categoryLabel, categoryIllustration, itemIllustration } = require('../../utils/constants')
 
 // 看板首屏订阅授权只打扰一次的本地标记
 const BOARD_SUB_ASKED_KEY = 'mi_board_sub_asked_v1'
@@ -29,8 +29,8 @@ function hhmm(iso) {
 }
 
 const DOSE_TAG = {
-  pending: { text: '待服', cls: 'tag-amber' },
-  taken: { text: '已服', cls: 'tag-green' },
+  pending: { text: '待打卡', cls: 'tag-amber' },
+  taken: { text: '已打卡', cls: 'tag-green' },
   missed: { text: '漏服', cls: 'tag-red' },
 }
 
@@ -149,6 +149,7 @@ Page({
       .select('id, item_id, expiry_date, production_date, opened_at, quantity, unit, status, items(name, category, pao_days)')
       .eq('household_id', hid)
       .eq('status', 'active')
+      .eq('is_deleted', false)
       .order('expiry_date', { ascending: true })
       .limit(50)
     if (error) {
@@ -184,20 +185,21 @@ Page({
           progressPct = Math.max(0, Math.min(100, Math.round(ratio * 100)))
         }
       }
+      const itemName = (b.items && b.items.name) || '未知物品'
       const entry = {
         id: b.id,
         item_id: b.item_id,
-        name: (b.items && b.items.name) || '未知物品',
+        name: itemName,
         catLabel: categoryLabel(cat),
-        illu: categoryIllustration(cat),
+        illu: itemIllustration(itemName, cat),
         qtyText: (b.quantity != null ? b.quantity : '') + (b.unit ? ' ' + b.unit : ''),
         expiry: baseDate,
         days: d,
         progressPct: progressPct,
         daysBig: Math.abs(d) + ' 天',
         daysLabel: d < 0 ? '已超期' + Math.abs(d) + ' 天' : d === 0 ? '今天到期' : d + ' 天后到期',
-        tagText: level === 'expired' ? '需处理' : level === 'danger' ? '尽快用' : '留意',
-        tagClass: level === 'warn' ? 'tag-amber' : 'tag-red',
+        tagText: level === 'expired' ? '需处理' : level === 'danger' ? '注意' : '留意',
+        tagClass: level === 'expired' ? 'tag-red' : 'tag-amber',
       }
       if (level === 'expired') {
         expired++
@@ -264,6 +266,7 @@ Page({
         id: d.id,
         time: hhmm(d.scheduled_at),
         name: itemMap[p.item_id] || '未知药品',
+        illu: itemIllustration(itemMap[p.item_id] || '', 'medicine'),
         memberName: memMap[p.member_id] || '',
         tagText: tag.text,
         tagClass: tag.cls,
@@ -354,6 +357,7 @@ Page({
       .from('items')
       .select('id, low_stock_threshold, unit')
       .eq('household_id', hid)
+      .eq('is_deleted', false)
       .limit(500)
     if (itemRes.error) {
       this.setData({ restockCount: 0 })
@@ -374,6 +378,7 @@ Page({
         .select('item_id, quantity')
         .eq('household_id', hid)
         .eq('status', 'active')
+        .eq('is_deleted', false)
         .order('id', { ascending: true })
         .range(from, Math.min(from + pageSize - 1, maxBatches))
       if (error) {

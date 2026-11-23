@@ -37,11 +37,14 @@
       <text class="ratio-value">{{summary.rateText}}</text>
     </view>
     <view class="summary-hint">{{summary.wasteText}}{{summary.capped ? '（已达 1000 条统计上限）' : ''}}</view>
+    <view wx:if="{{filter !== 'all'}}" class="filter-note">上方概览为全量统计，不随筛选变化</view>
   </view>
 
   <view class="card">
     <view class="card-title">操作记录（{{records.length}}）</view>
-    <view wx:if="{{records.length === 0}}" class="hint-sm">暂无操作记录</view>
+    <view class="rec-filters">
+      <view wx:for="{{filters}}" wx:for-item="f" wx:key="key" class="rec-chip {{filter === f.key ? 'rec-chip-active' : ''}}" data-key="{{f.key}}" bindtap="onfilter">{{f.label}}</view>
+    </view>
     <view wx:for="{{records}}" wx:for-item="r" wx:key="id" class="rec-row">
       <view class="rec-main">
         <view class="rec-title">
@@ -52,6 +55,7 @@
       </view>
       <view class="rec-time">{{r.timeText}}</view>
     </view>
+    <view wx:if="{{records.length === 0}}" class="hint-sm">{{filter === 'all' ? '暂无操作记录' : '该动作暂无记录'}}</view>
   </view>
 </view>
 </view>

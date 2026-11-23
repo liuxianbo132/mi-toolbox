@@ -23,11 +23,58 @@ Page({
     loginLoading: false,
     largeText: false,
     exportBusy: false, // 导出防连点
+    // V3：家庭内昵称编辑
+    nicknameInput: '',
+    nicknameBusy: false,
   },
 
   onShow() {
-    this.setData({ largeText: getApp().globalData.largeText })
+    this.setData({
+      largeText: getApp().globalData.largeText,
+      nicknameInput: getApp().globalData.myNickname || '',
+    })
     this.restore()
+  },
+
+  // V3：昵称输入
+  onnicknameinput(e) {
+    this.setData({ nicknameInput: e.detail.value })
+  },
+
+  // V3：保存昵称到本人 members 行（RLS 允许本人 UPDATE 自己那一行）
+  async savenickname() {
+    if (this.data.nicknameBusy) return
+    const nickname = (this.data.nicknameInput || '').trim()
+    if (!nickname) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' })
+      return
+    }
+    let selfId = null
+    for (let i = 0; i < this.data.members.length; i++) {
+      if (this.data.members[i].isSelf) {
+        selfId = this.data.members[i].id
+        break
+      }
+    }
+    if (selfId == null) {
+      wx.showToast({ title: '未找到本人成员信息', icon: 'none' })
+      return
+    }
+    this.setData({ nicknameBusy: true })
+    const { data, error } = await cloud.database
+      .from('members')
+      .update({ nickname: nickname })
+      .eq('id', selfId)
+      .select('id, nickname')
+    this.setData({ nicknameBusy: false })
+    if (error || !data || !data.length) {
+      wx.showToast({ title: (error && error.message) || '保存失败', icon: 'none' })
+      return
+    }
+    getApp().globalData.myNickname = nickname
+    this.setData({ nicknameInput: nickname })
+    wx.showToast({ title: '已保存', icon: 'success' })
+    await this.loadHousehold()
   },
 
   onLargeTextChange(e) {
@@ -82,6 +129,10 @@ Page({
       return
     }
     const sessionName = (this.data.user && this.data.user.name) || ''
+    let selfNickname = ''
+    ;(data || []).forEach(function (m) {
+      if (m.owner_id === uid && m.nickname) selfNickname = m.nickname
+    })
     const members = (data || []).map(function (m) {
       const isSelf = m.owner_id === uid
       let nameText = m.nickname
@@ -99,7 +150,10 @@ Page({
         canLeave: isSelf && m.role !== 'owner',
       }
     })
-    this.setData({ members: members })
+    this.setData({
+      members: members,
+      nicknameInput: getApp().globalData.myNickname || selfNickname || '',
+    })
   },
 
   // ===== 数据备份：导出 JSON 快照 / items CSV，写给微信会话 =====
@@ -161,6 +215,11 @@ Page({
   // V2 Step4：操作记录入口
   gorecords() {
     wx.navigateTo({ url: '/pages/records/records' })
+  },
+
+  // 回收站入口（契约 v2.0 软删除）
+  gotrash() {
+    wx.navigateTo({ url: '/pages/trash/trash' })
   },
 
   // 过敏档案入口（m2-brief #6）：本人 + owner 代管

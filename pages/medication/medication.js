@@ -102,6 +102,7 @@ Page({
       .from('members')
       .select('id, owner_id, nickname, role')
       .eq('household_id', hid)
+    // 名称映射不过滤 is_deleted（契约 v2.0）：已删药品的历史计划与剂量仍需显示原名
     const itemRes = await cloud.database
       .from('items')
       .select('id, name, category')

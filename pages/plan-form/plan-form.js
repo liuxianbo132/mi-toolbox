@@ -114,6 +114,7 @@ Page({
       .select('id, name')
       .eq('household_id', hid)
       .eq('category', 'medicine')
+      .eq('is_deleted', false)
 
     const members = memberRes.data || []
     const medicines = itemRes.data || []

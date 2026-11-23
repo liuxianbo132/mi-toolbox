@@ -19,7 +19,11 @@
 
 <view wx:else>
   <view class="card">
-    <view class="row"><text class="label">昵称</text><text>{{user.name || '微信用户'}}</text></view>
+    <view class="row nickname-row">
+      <text class="label">昵称</text>
+      <input class="ipt" value="{{nicknameInput}}" bindinput="onnicknameinput" maxlength="12" placeholder="设置家庭内昵称" />
+      <button size="mini" class="btn-primary" bindtap="savenickname" disabled="{{nicknameBusy}}">保存</button>
+    </view>
     <view class="row" wx:if="{{household}}">
       <text class="label">家庭</text><text>{{household.name}}</text>
     </view>
@@ -48,6 +52,15 @@
       <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
       <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
     </view>
+  </view>
+
+  <!-- 回收站：恢复误删的物品与批次 -->
+  <view class="card trash-entry" bindtap="gotrash">
+    <view class="trash-entry-main">
+      <view class="preference-title">回收站</view>
+      <view class="preference-hint">恢复误删的物品与批次</view>
+    </view>
+    <image class="trash-entry-arrow" src="/assets/icons/chevron.svg" />
   </view>
 
   <!-- 成员管理（ruling 前端清单 #5）：member 退出家庭 / owner 移除成员，owner 不显示退出入口 -->

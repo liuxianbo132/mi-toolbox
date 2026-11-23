@@ -8,13 +8,13 @@ const TABLES = [
     key: 'items',
     table: 'items',
     max: 1000,
-    columns: 'id,household_id,name,barcode,category,brand,spec,unit,shelf_life_days,pao_days,low_stock_threshold,remark,visibility,created_at',
+    columns: 'id,household_id,name,barcode,category,brand,spec,unit,shelf_life_days,pao_days,low_stock_threshold,remark,visibility,created_at,is_deleted,deleted_at',
   },
   {
     key: 'batches',
     table: 'batches',
     max: 3000,
-    columns: 'id,household_id,item_id,production_date,expiry_date,quantity,unit,location_id,status,opened_at,price,source,owner_id,owner_name,created_at',
+    columns: 'id,household_id,item_id,production_date,expiry_date,quantity,unit,location_id,status,opened_at,price,source,owner_id,owner_name,created_at,is_deleted,deleted_at',
   },
   {
     key: 'locations',
