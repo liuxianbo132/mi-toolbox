@@ -86,6 +86,18 @@ node scripts/verify-static.js   # JSON / JS 语法 / 页面注册 / tabBar 图�
 | [`docs/evidence/`](docs/evidence/) | 每次验收的数据库终态证据链 |
 | [`docs/research-2026-11-23.md`](docs/research-2026-11-23.md) | 同类产品调研与优化建议 |
 
+## 界面预览
+
+> 截图时间 2026-11-23，模拟器渲染；更多说明见 [`docs/screenshots/README.md`](docs/screenshots/README.md)
+
+| 临期看板 | 库存 | 用药 | 我的 |
+|---|---|---|---|
+| ![](docs/screenshots/01-home.png) | ![](docs/screenshots/02-inventory.png) | ![](docs/screenshots/03-medication.png) | ![](docs/screenshots/04-profile.png) |
+
+| 用药依从性报告 | 回收站 | 物品详情 |
+|---|---|---|
+| ![](docs/screenshots/05-adherence.png) | ![](docs/screenshots/06-trash.png) | ![](docs/screenshots/07-item.png) |
+
 ## 路线
 
 - V3 候选：成员昵称（流水操作人可读）、回收站（软删除）、小票 OCR 批量入库、日历视图、月度浪费统计、购物清单
