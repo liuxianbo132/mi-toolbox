@@ -8,7 +8,7 @@
   <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
 </view>
 
-<state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="先创建或加入一个家庭，才能记录用药计划" action-text="前往临期看板" bindaction="gohome" />
+<state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="先创建或加入一个家庭，才能记录用药计划" action-text="前往临期看板" bindaction="gohome" />
 
 <state-view wx:elif="{{authState === 'error' || loadState === 'error' && timeline.length === 0 && plans.length === 0}}" icon="/assets/icons/alertCircle-red.svg" title="用药信息暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
 
@@ -40,7 +40,10 @@
       <text>今日用药暂时无法加载</text>
       <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
     </view>
-    <view wx:elif="{{timeline.length === 0}}" class="empty-inline">今天没有用药安排</view>
+    <view wx:elif="{{timeline.length === 0}}" class="medication-empty">
+      <image class="medication-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
+      <text>今天没有用药安排</text>
+    </view>
 
     <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row">
       <view class="dose-time">{{d.time}}</view>

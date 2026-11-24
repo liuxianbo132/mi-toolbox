@@ -14,6 +14,11 @@
   line-height: 1.4;
 }
 
+.low-stock-hint {
+  padding: 8rpx 0 12rpx;
+  text-align: left;
+}
+
 /* 视觉录入按钮：整行、次要视觉层级 */
 .recognize-btn {
   width: 100%;

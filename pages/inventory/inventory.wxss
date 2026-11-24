@@ -56,6 +56,42 @@
   transform: rotate(90deg);
   flex-shrink: 0;
 }
+.stock-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+.stock-filter-label {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: var(--color-text-2);
+}
+.stock-filter-chips {
+  display: flex;
+  gap: 8rpx;
+  flex: 1;
+  justify-content: flex-end;
+}
+.stock-filter-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 88rpx;
+  min-width: 112rpx;
+  padding: 0 20rpx;
+  border-radius: var(--radius-sm);
+  background: rgba(120, 120, 128, 0.08);
+  color: var(--color-text-2);
+  font-size: 24rpx;
+  line-height: 1.35;
+}
+.stock-filter-chip.is-selected {
+  background: var(--color-primary-light);
+  color: var(--color-primary-ink);
+  font-weight: 600;
+}
 .clear-row {
   display: flex;
   justify-content: flex-end;
@@ -205,3 +241,6 @@
 
 /* 登录卡片标题沿用全局类；按钮使用全局 88rpx 触控尺寸 */
 .login-card { margin-top: 120rpx; }
+
+.large-text .stock-filter-label,
+.large-text .stock-filter-chip { font-size: 28rpx; }

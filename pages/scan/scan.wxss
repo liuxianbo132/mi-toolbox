@@ -19,3 +19,10 @@
   margin-top: var(--space-1);
   word-break: break-all;
 }
+
+.scan-mascot {
+  display: block;
+  width: 144rpx;
+  height: 144rpx;
+  margin: 0 auto 16rpx;
+}

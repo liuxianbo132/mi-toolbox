@@ -2,6 +2,7 @@
 <view wx:if="{{status === 'scanning'}}" class="center">正在启动扫码…</view>
 
 <view wx:elif="{{status === 'error'}}" class="card center-hint">
+  <image class="scan-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
   <view>{{errorText || '扫码未完成'}}</view>
   <view wx:if="{{lastCode}}" class="scan-code">已识别：{{lastCode}}</view>
   <view class="scan-actions">
@@ -11,6 +12,7 @@
 </view>
 
 <view wx:elif="{{status === 'no-household'}}" class="card center-hint">
+  <image class="scan-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
   <view>先到「临期看板」创建家庭，或用家人分享的邀请码加入，再回来扫码录入</view>
   <view class="scan-actions">
     <button size="mini" class="btn-primary" bindtap="goBack">返回</button>

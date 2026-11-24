@@ -15,7 +15,7 @@
   width: 100vw;
   height: 640rpx;
   z-index: 0;
-  opacity: 0.42;
+  opacity: 0.18;
   pointer-events: none;
 }
 
@@ -49,7 +49,7 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.brand-ico { width: 44rpx; height: 44rpx; }
+.brand-ico { width: 64rpx; height: 64rpx; }
 .brand-name {
   font-size: 36rpx;
   font-weight: 600;
@@ -67,7 +67,20 @@
 }
 
 /* 今日概览 */
-.hero { padding: 28rpx 32rpx 32rpx; }
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 24rpx 32rpx 18rpx;
+}
+.hero-copy { flex: 1; min-width: 0; }
+.hero-mascot {
+  width: 148rpx;
+  height: 148rpx;
+  margin: -16rpx 0 -24rpx;
+  flex-shrink: 0;
+}
 .hero-title {
   font-size: 44rpx;
   font-weight: 600;
@@ -378,3 +391,5 @@
 .login-card { margin-top: 160rpx; text-align: center; }
 .login-btn { width: 80%; }
 .divider { margin: 20rpx 0; font-size: 24rpx; color: var(--color-text-2); }
+
+.large-text .hero-mascot { width: 132rpx; height: 132rpx; }

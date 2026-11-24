@@ -24,7 +24,7 @@
       <text class="f-label">品类</text>
       <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
         <view class="ipt cat-picker">
-          <image class="picker-ico" src="/assets/illustrations/v2/{{categoryOptions[categoryIndex].value}}.png" mode="aspectFit" />
+          <image class="picker-ico" src="{{categoryOptions[categoryIndex].illustration}}" mode="aspectFit" />
           <text>{{categoryOptions[categoryIndex].label}}</text>
         </view>
       </picker>
@@ -41,6 +41,11 @@
       <text class="f-label">规格</text>
       <input class="ipt" value="{{spec}}" bindinput="onSpecInput" placeholder="选填，如 250ml×12" />
     </view>
+    <view class="form-row">
+      <text class="f-label">低库存提醒</text>
+      <input class="ipt" type="number" maxlength="3" value="{{lowStockThreshold}}" bindinput="onLowStockThresholdInput" placeholder="选填，默认 0" />
+    </view>
+    <view class="hint-sm low-stock-hint">数量 ≤ 此值时提示待补货；留空按 0（用完）</view>
     <view wx:if="{{barcode}}" class="form-row">
       <text class="f-label">条码</text>
       <view class="ipt barcode-value">{{barcode}}</view>

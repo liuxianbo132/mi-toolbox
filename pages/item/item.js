@@ -1,11 +1,19 @@
 const { cloud } = require('../../utils/cloud')
 const { itemsAccess, batchesAccess, drugLinksAccess, logRecord } = require('../../utils/data-access')
-const { CATEGORIES, categoryLabel, categoryIllustration } = require('../../utils/constants')
+const { CATEGORIES, categoryLabel, categoryIllustration, itemIllustration } = require('../../utils/constants')
 const { daysUntil, urgencyLevel, effectiveExpiry } = require('../../utils/date')
 const { matchAllergies, hitsText, KIND_LABEL } = require('../../utils/allergy')
 
 // 契约：batches.status('active'|'used'|'discarded')
 const BATCH_STATUS_LABEL = { active: '在库', used: '已用完', discarded: '已报废' }
+
+function parseLowStockThreshold(value) {
+  const raw = String(value == null ? '' : value).trim()
+  if (!raw) return 0
+  if (!/^\d+$/.test(raw)) return null
+  const n = Number(raw)
+  return n >= 0 && n <= 999 ? n : null
+}
 
 Page({
   data: {
@@ -20,7 +28,9 @@ Page({
     batchState: 'idle', // idle | loading | ready | error
     batchError: '',
     batchBusy: false,
-    categoryOptions: CATEGORIES,
+    categoryOptions: CATEGORIES.map(function (category) {
+      return Object.assign({}, category, { illustration: categoryIllustration(category.value) })
+    }),
     // 物品编辑
     editing: false,
     editSaving: false,
@@ -29,6 +39,7 @@ Page({
     editUnit: '',
     editBrand: '',
     editSpec: '',
+    editLowStockThreshold: '',
     // 新增批次
     addingBatch: false,
     addSaving: false,
@@ -81,7 +92,7 @@ Page({
     this.setData({ loading: true, loadState: 'loading', batchState: 'loading', loadError: '', batchError: '' })
     const { data: itemRows, error } = await cloud.database
       .from('items')
-      .select('id, household_id, name, category, unit, brand, spec, pao_days')
+      .select('id, household_id, name, category, unit, brand, spec, pao_days, low_stock_threshold')
       .eq('id', this.data.itemId)
       .eq('is_deleted', false)
       .limit(1)
@@ -141,9 +152,11 @@ Page({
         category: row.category,
         categoryLabel: categoryLabel(row.category),
         categoryIllu: categoryIllustration(row.category),
+        itemIllu: itemIllustration(row.name, row.category),
         unit: row.unit || '',
         brand: row.brand || '',
         spec: row.spec || '',
+        lowStockThreshold: row.low_stock_threshold == null ? '0' : String(row.low_stock_threshold),
       },
       activeBatches: activeBatches,
       historyBatches: historyBatches,
@@ -455,6 +468,7 @@ Page({
       editUnit: item.unit,
       editBrand: item.brand,
       editSpec: item.spec,
+      editLowStockThreshold: item.lowStockThreshold,
     })
   },
 
@@ -466,12 +480,18 @@ Page({
   onEditUnit(e) { this.setData({ editUnit: e.detail.value }) },
   onEditBrand(e) { this.setData({ editBrand: e.detail.value }) },
   onEditSpec(e) { this.setData({ editSpec: e.detail.value }) },
+  onEditLowStockThreshold(e) { this.setData({ editLowStockThreshold: e.detail.value }) },
   onEditCategory(e) { this.setData({ editCategoryIndex: Number(e.detail.value) || 0 }) },
 
   async saveEdit() {
     const name = (this.data.editName || '').trim()
     if (!name) {
       wx.showToast({ title: '请填写物品名称', icon: 'none' })
+      return
+    }
+    const lowStockThreshold = parseLowStockThreshold(this.data.editLowStockThreshold)
+    if (lowStockThreshold == null) {
+      wx.showToast({ title: '低库存提醒请填 0–999 的整数', icon: 'none' })
       return
     }
     if (this.data.editSaving) return
@@ -483,6 +503,7 @@ Page({
       unit: (this.data.editUnit || '').trim(),
       brand: (this.data.editBrand || '').trim(),
       spec: (this.data.editSpec || '').trim(),
+      low_stock_threshold: lowStockThreshold,
     })
     this.setData({ editSaving: false })
     if (res.error || !res.data) {

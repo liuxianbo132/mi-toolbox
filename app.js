@@ -45,6 +45,7 @@ App({
   resetSession() {
     this.sessionPromise = null
     this.globalData.myNickname = ''
+    this.globalData.pendingInventoryLowStockFilter = null
   },
 
   loginWithWechat() {

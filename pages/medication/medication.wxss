@@ -65,6 +65,18 @@
   line-height: 1.6;
   color: var(--color-text-2);
 }
+.medication-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  min-height: 132rpx;
+  padding: 16rpx 28rpx 24rpx;
+  color: var(--color-text-2);
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+.medication-mascot { width: 88rpx; height: 88rpx; flex-shrink: 0; }
 
 .dose-row {
   display: flex;

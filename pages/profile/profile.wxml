@@ -3,7 +3,7 @@
 
 <block wx:elif="{{authState === 'signed-out'}}">
   <view class="card login-card">
-    <image class="brand-mark" src="/assets/icons/cat-home.svg" />
+    <image class="brand-mark" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
     <view class="app-title">小咪工具箱</view>
     <view class="app-sub">登录后管理家庭物品与用药</view>
     <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
@@ -22,14 +22,14 @@
 
 <view wx:else class="page">
   <view class="card profile-head">
-    <image class="profile-mark" src="/assets/icons/cat-home.svg" />
+    <image class="profile-mark" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
     <view class="profile-copy">
       <view class="profile-title">我的</view>
       <view class="profile-sub">{{household ? household.name : '尚未加入家庭'}}</view>
     </view>
   </view>
 
-  <state-view wx:if="{{!household}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="创建或加入家庭后，才能与家人共享库存、用药和成员信息" action-text="前往临期看板" bindaction="gohome" />
+  <state-view wx:if="{{!household}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="创建或加入家庭后，才能与家人共享库存、用药和成员信息" action-text="前往临期看板" bindaction="gohome" />
 
   <block wx:else>
     <view class="card">

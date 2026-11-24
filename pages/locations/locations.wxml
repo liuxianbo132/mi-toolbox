@@ -11,7 +11,10 @@
 <view wx:else>
   <view class="card">
     <view class="card-title">存放位置（{{locations.length}}）</view>
-    <view wx:if="{{locations.length === 0}}" class="hint-sm">暂无位置，先添加一个吧</view>
+    <view wx:if="{{locations.length === 0}}" class="location-empty">
+      <image class="location-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
+      <text>暂无位置，先添加一个吧</text>
+    </view>
     <view wx:for="{{locations}}" wx:for-item="l" wx:key="id" class="loc-row">
       <block wx:if="{{renamingId !== l.id}}">
         <text class="loc-name">{{l.name}}</text>

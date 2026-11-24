@@ -9,12 +9,12 @@
   <view class="card detail-card">
     <view wx:if="{{!editing}}">
       <view class="detail-head">
-        <image class="detail-illu" src="{{item.categoryIllu}}" mode="aspectFit" />
+        <image class="detail-illu" src="{{item.itemIllu}}" mode="aspectFit" />
         <view class="detail-copy">
           <view class="detail-name">{{item.name}}</view>
           <view class="detail-meta">
             <view class="cat-chip">
-              <image class="chip-ico" src="{{item.categoryIllu}}" mode="aspectFit" />
+              <image class="chip-ico" src="{{item.itemIllu}}" mode="aspectFit" />
               <text>{{item.categoryLabel}}</text>
             </view>
             <text wx:if="{{item.brand}}">{{item.brand}}</text>
@@ -35,7 +35,7 @@
         <text class="f-label">品类</text>
         <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{editCategoryIndex}}" bindchange="onEditCategory">
           <view class="ipt cat-picker">
-            <image class="picker-ico" src="/assets/illustrations/v2/{{categoryOptions[editCategoryIndex].value}}.png" mode="aspectFit" />
+            <image class="picker-ico" src="{{categoryOptions[editCategoryIndex].illustration}}" mode="aspectFit" />
             <text>{{categoryOptions[editCategoryIndex].label}}</text>
           </view>
         </picker>
@@ -52,6 +52,11 @@
         <text class="f-label">规格</text>
         <input class="ipt" value="{{editSpec}}" bindinput="onEditSpec" />
       </view>
+      <view class="form-row">
+        <text class="f-label">低库存提醒</text>
+        <input class="ipt" type="number" maxlength="3" value="{{editLowStockThreshold}}" bindinput="onEditLowStockThreshold" placeholder="默认 0" />
+      </view>
+      <view class="hint-sm low-stock-hint">数量 ≤ 此值时提示待补货；留空按 0（用完）</view>
       <view class="edit-actions">
         <button size="mini" class="btn-ghost" bindtap="cancelEdit">取消</button>
         <button size="mini" class="btn-primary" loading="{{editSaving}}" disabled="{{editSaving}}" bindtap="saveEdit">保存</button>

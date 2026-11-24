@@ -338,7 +338,8 @@ Page({
       wx.showToast({ title: '结束日期不能早于开始日期', icon: 'none' })
       return
     }
-    if (days > MAX_COURSE_DAYS) {
+    // courseDays 返回的是日期差；起止日期均计入疗程，差值 180 已等于 181 天。
+    if (days >= MAX_COURSE_DAYS) {
       wx.showToast({ title: '疗程不能超过 ' + MAX_COURSE_DAYS + ' 天', icon: 'none' })
       return
     }

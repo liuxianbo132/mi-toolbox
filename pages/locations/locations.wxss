@@ -6,6 +6,19 @@
   padding: 12rpx 0;
   text-align: center;
 }
+.location-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  min-height: 136rpx;
+  padding: 12rpx 0 20rpx;
+  color: var(--color-text-3);
+  font-size: var(--font-xs);
+  line-height: 1.45;
+  text-align: center;
+}
+.location-mascot { width: 112rpx; height: 112rpx; flex-shrink: 0; }
 
 .loc-row {
   display: flex;

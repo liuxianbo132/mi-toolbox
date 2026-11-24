@@ -48,6 +48,11 @@
   text-align: center;
 }
 
+.low-stock-hint {
+  padding: 8rpx 0 12rpx;
+  text-align: left;
+}
+
 .batch-row {
   display: flex;
   justify-content: space-between;

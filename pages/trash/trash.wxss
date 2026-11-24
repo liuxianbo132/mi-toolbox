@@ -43,6 +43,16 @@
   gap: 8rpx;
   flex-shrink: 0;
 }
+.trash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 40rpx 32rpx;
+  color: var(--color-text-2);
+  font-size: var(--font-md);
+}
+.trash-mascot { width: 136rpx; height: 136rpx; }
 
 /* 大字模式：标题与二级信息跟随放大，触控尺寸沿用全局 mini 规则 */
 .large-text .trash-title {

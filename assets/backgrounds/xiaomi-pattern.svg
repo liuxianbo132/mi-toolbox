@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="640" viewBox="0 0 750 640" fill="none">
+  <defs>
+    <pattern id="paws" width="188" height="188" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
+      <g opacity="0.32" stroke="#6D7F8B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M42 75c0-16 10-27 22-27s22 11 22 27c0 13-8 24-22 24S42 88 42 75Z" />
+        <path d="M31 42c0-8 6-14 13-14s13 6 13 14-6 15-13 15-13-7-13-15Z" />
+        <path d="M56 29c0-8 6-14 13-14s13 6 13 14-6 15-13 15-13-7-13-15Z" />
+        <path d="M81 42c0-8 6-14 13-14s13 6 13 14-6 15-13 15-13-7-13-15Z" />
+      </g>
+      <g opacity="0.18" stroke="#007AFF" stroke-width="8" stroke-linecap="round">
+        <path d="M128 108c13-19 38-25 58-13" />
+        <path d="M132 119c16 13 37 16 56 7" />
+        <path d="M156 93v44" />
+      </g>
+    </pattern>
+  </defs>
+  <rect width="750" height="640" fill="url(#paws)" />
+</svg>

@@ -1,8 +1,16 @@
 const { cloud } = require('../../utils/cloud')
 const { itemsAccess, batchesAccess, logRecord } = require('../../utils/data-access')
-const { CATEGORIES } = require('../../utils/constants')
+const { CATEGORIES, categoryIllustration } = require('../../utils/constants')
 const { askExpirySubscribe } = require('../../utils/subscribe')
 const { recognizeFromImage } = require('../../utils/vision')
+
+function parseLowStockThreshold(value) {
+  const raw = String(value == null ? '' : value).trim()
+  if (!raw) return 0
+  if (!/^\d+$/.test(raw)) return null
+  const n = Number(raw)
+  return n >= 0 && n <= 999 ? n : null
+}
 
 Page({
   data: {
@@ -11,12 +19,15 @@ Page({
     loginError: '',
     loginLoading: false,
     householdId: null,
-    categoryOptions: CATEGORIES,
+    categoryOptions: CATEGORIES.map(function (category) {
+      return Object.assign({}, category, { illustration: categoryIllustration(category.value) })
+    }),
     categoryIndex: 0,
     name: '',
     unit: '',
     brand: '',
     spec: '',
+    lowStockThreshold: '',
     saving: false,
     // V2 Step2：可选存放位置
     locations: [],
@@ -114,6 +125,10 @@ Page({
     this.setData({ spec: e.detail.value })
   },
 
+  onLowStockThresholdInput(e) {
+    this.setData({ lowStockThreshold: e.detail.value })
+  },
+
   onCategoryChange(e) {
     this.setData({ categoryIndex: Number(e.detail.value) || 0 })
   },
@@ -161,6 +176,11 @@ Page({
       wx.showToast({ title: '请先创建或加入家庭', icon: 'none' })
       return
     }
+    const lowStockThreshold = parseLowStockThreshold(this.data.lowStockThreshold)
+    if (lowStockThreshold == null) {
+      wx.showToast({ title: '低库存提醒请填 0–999 的整数', icon: 'none' })
+      return
+    }
     const bf = this.selectComponent('#batchForm')
     const res = bf ? bf.getValues() : null
     if (!res || res.error) {
@@ -179,6 +199,7 @@ Page({
       brand: (this.data.brand || '').trim(),
       spec: (this.data.spec || '').trim(),
       barcode: this.data.barcode || null,
+      low_stock_threshold: lowStockThreshold,
     })
     if (created.error || !created.data) {
       this.setData({ saving: false })

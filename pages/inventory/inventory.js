@@ -30,6 +30,7 @@ Page({
     locationOptions: [{ id: 'all', name: '全部位置' }],
     sortIndex: 0,
     sortOptions: ['最近添加', '最早到期', '名称'],
+    stockFilter: 'all',
     itemsLimited: false,
     batchDataLimited: false,
   },
@@ -43,6 +44,7 @@ Page({
     this.setData({ authState: 'checking', loadError: '' })
     const { data: session, error } = await getApp().ensureSession()
     if (error || !session) {
+      getApp().globalData.pendingInventoryLowStockFilter = null
       this.clearInventoryData()
       this.setData({ authState: 'signed-out', household: null })
       return
@@ -59,6 +61,7 @@ Page({
     }
     const uid = session && session.user && session.user.id
     if (!uid) {
+      getApp().globalData.pendingInventoryLowStockFilter = null
       this.clearInventoryData()
       this.setData({ household: null })
       return
@@ -74,18 +77,24 @@ Page({
     }
     const row = mine && mine[0]
     if (!row) {
+      getApp().globalData.pendingInventoryLowStockFilter = null
       this.clearInventoryData()
       this.setData({ household: null, loadError: '' })
       return
     }
     const previousHouseholdId = this.data.household && this.data.household.id
     const sameHousehold = String(previousHouseholdId || '') === String(row.household_id)
-    this.clearInventoryData(!sameHousehold)
+    // 首页「待补货」入口不能通过 switchTab 传 query，使用一次性内存标记。
+    // 命中时重置其他筛选，确保用户看到完整的待补货集合而不是上次的残留条件。
+    const pendingIntent = getApp().globalData.pendingInventoryLowStockFilter
+    const pendingLowStockFilter = !!(pendingIntent && typeof pendingIntent === 'object' && String(pendingIntent.householdId || '') === String(row.household_id))
+    if (pendingIntent) getApp().globalData.pendingInventoryLowStockFilter = null
+    this.clearInventoryData(pendingLowStockFilter || !sameHousehold, pendingLowStockFilter ? 'low' : undefined)
     this.setData({ household: { id: row.household_id }, loadError: '' })
     await this.loadItems(row.household_id)
   },
 
-  clearInventoryData(resetFilters) {
+  clearInventoryData(resetFilters, preferredStockFilter) {
     const next = {
       items: [], allItems: [], groups: [],
       itemsLimited: false, batchDataLimited: false,
@@ -97,6 +106,7 @@ Page({
       next.categoryIndex = 0
       next.locationIndex = 0
       next.sortIndex = 0
+      next.stockFilter = preferredStockFilter === 'low' ? 'low' : 'all'
     }
     this.setData(next)
   },
@@ -237,13 +247,15 @@ Page({
     const category = catOpt ? catOpt.value : 'all'
     const locationId = locOpt ? locOpt.id : 'all'
     const sortIndex = this.data.sortIndex
+    const stockFilter = this.data.stockFilter || 'all'
     const items = this.data.allItems.filter(function (item) {
       const matchesTerm = !term || [item.name, item.brand, item.spec, item.barcode].some(function (value) {
         return String(value || '').toLocaleLowerCase().indexOf(term) >= 0
       })
       const matchesCategory = category === 'all' || item.category === category || (category === 'other' && !CATEGORIES.some(function (c) { return c.value === item.category }))
       const matchesLocation = locationId === 'all' || (item.locationIds || []).indexOf(locationId) >= 0
-      return matchesTerm && matchesCategory && matchesLocation
+      const matchesStock = stockFilter !== 'low' || item.lowStock
+      return matchesTerm && matchesCategory && matchesLocation && matchesStock
     }).sort(function (a, b) {
       if (sortIndex === 1) return (a.earliestExpiry || '9999-12-31').localeCompare(b.earliestExpiry || '9999-12-31')
       if (sortIndex === 2) return String(a.name || '').localeCompare(String(b.name || ''), 'zh-CN')
@@ -279,8 +291,13 @@ Page({
     this.setData({ sortIndex: Number(e.detail.value) }, () => this.applyFilters())
   },
 
+  onstockfiltertap(e) {
+    const stockFilter = e.currentTarget.dataset.filter === 'low' ? 'low' : 'all'
+    this.setData({ stockFilter: stockFilter }, () => this.applyFilters())
+  },
+
   clearInventoryFilters() {
-    this.setData({ searchText: '', categoryIndex: 0, locationIndex: 0, sortIndex: 0 }, () => this.applyFilters())
+    this.setData({ searchText: '', categoryIndex: 0, locationIndex: 0, sortIndex: 0, stockFilter: 'all' }, () => this.applyFilters())
   },
 
   clearinventoryfilters() { this.clearInventoryFilters() },

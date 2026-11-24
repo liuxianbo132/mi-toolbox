@@ -7,7 +7,7 @@ const { cloud } = require('./cloud')
 // id 必须包含：create() 的 .insert().select(columns) 靠它把自增主键带回（否则 created.data.id 缺失）
 // 写路径安全性：pickFields 跳过 undefined，payload 不带 id 时 id 不会进入 insert（自增不受影响）
 // production_date：生产日期（calc 模式录入，direct 模式存 null）；需后端 batches 同步加列后生效
-const ITEM_FIELDS = ['id', 'household_id', 'name', 'category', 'unit', 'brand', 'spec', 'barcode', 'is_deleted', 'deleted_at']
+const ITEM_FIELDS = ['id', 'household_id', 'name', 'category', 'unit', 'brand', 'spec', 'barcode', 'low_stock_threshold', 'is_deleted', 'deleted_at']
 const BATCH_FIELDS = ['id', 'household_id', 'item_id', 'expiry_date', 'production_date', 'quantity', 'unit', 'status', 'opened_at', 'location_id', 'owner_name', 'is_deleted', 'deleted_at']
 
 function pickFields(fields) {

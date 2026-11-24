@@ -10,7 +10,7 @@
 
 <state-view wx:elif="{{loadError}}" icon="/assets/icons/alertCircle-red.svg" title="库存暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryinventoryload" />
 
-<state-view wx:elif="{{!household}}" icon="/assets/icons/cat-home.svg" title="还没有加入家庭" desc="先创建或加入一个家庭，才能和家人共享库存" action-text="前往临期看板" bindaction="gohome" />
+<state-view wx:elif="{{!household}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="先创建或加入一个家庭，才能和家人共享库存" action-text="前往临期看板" bindaction="gohome" />
 
 <view wx:else class="page">
   <view class="card inventory-tools">
@@ -40,7 +40,14 @@
         </view>
       </picker>
     </view>
-    <view wx:if="{{searchText || categoryIndex !== 0 || locationIndex !== 0 || sortIndex !== 0}}" class="clear-row">
+    <view class="stock-filter-row">
+      <text class="stock-filter-label">库存状态</text>
+      <view class="stock-filter-chips">
+        <view class="stock-filter-chip {{stockFilter === 'all' ? 'is-selected' : ''}}" data-filter="all" hover-class="button-hover" bindtap="onstockfiltertap">全部</view>
+        <view class="stock-filter-chip {{stockFilter === 'low' ? 'is-selected' : ''}}" data-filter="low" hover-class="button-hover" bindtap="onstockfiltertap">待补货</view>
+      </view>
+    </view>
+    <view wx:if="{{searchText || categoryIndex !== 0 || locationIndex !== 0 || sortIndex !== 0 || stockFilter === 'low'}}" class="clear-row">
       <button size="mini" class="btn-ghost" hover-class="button-hover" bindtap="clearInventoryFilters">清空筛选</button>
     </view>
     <view wx:if="{{itemsLimited || batchDataLimited}}" class="limit-hint">{{itemsLimited ? '搜索范围限最近的 1000 件物品' : ''}}{{itemsLimited && batchDataLimited ? '；' : ''}}{{batchDataLimited ? '位置与到期筛选最多参考 3000 个在库批次' : ''}}</view>
@@ -57,9 +64,9 @@
 
   <state-view wx:if="{{loading}}" title="正在加载库存" desc="整理家庭物品，请稍候" compact="{{true}}" />
 
-  <state-view wx:elif="{{items.length === 0 && allItems.length === 0}}" icon="/assets/icons/box.svg" title="还没有物品记录" desc="把家里的第一件物品记录下来吧" action-text="去录入" bindaction="gocreate" />
+  <state-view wx:elif="{{items.length === 0 && allItems.length === 0}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有物品记录" desc="把家里的第一件物品记录下来吧" action-text="去录入" bindaction="gocreate" />
 
-  <state-view wx:elif="{{items.length === 0}}" icon="/assets/icons/box.svg" title="没有符合条件的物品" desc="试试更换关键词或清空筛选条件" action-text="清空筛选" bindaction="clearinventoryfilters" />
+  <state-view wx:elif="{{items.length === 0}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="没有符合条件的物品" desc="试试更换关键词或清空筛选条件" action-text="清空筛选" bindaction="clearinventoryfilters" />
 
   <block wx:else>
     <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group-card">

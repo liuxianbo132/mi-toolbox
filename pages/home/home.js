@@ -447,6 +447,17 @@ Page({
     wx.switchTab({ url: '/pages/inventory/inventory' })
   },
 
+  goRestockInventory() {
+    const household = this.data.household
+    // switchTab 不支持 query；把一次性筛选意图绑定到当前家庭，避免登录态切换后误用旧意图。
+    getApp().globalData.pendingInventoryLowStockFilter = household && household.id
+      ? { householdId: String(household.id) }
+      : null
+    wx.switchTab({ url: '/pages/inventory/inventory' })
+  },
+
+  gorestockinventory() { this.goRestockInventory() },
+
   goProfile() {
     wx.switchTab({ url: '/pages/profile/profile' })
   },
