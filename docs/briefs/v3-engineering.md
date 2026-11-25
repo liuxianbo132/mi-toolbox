@@ -79,6 +79,7 @@
 - 隔离环境验证创建／加入／退出／重新加入、普通成员与管理员权限、跨家庭隔离、重复请求、计划修订冲突、历史场次保留和回收站级联。应用端再验证首批入库、批次状态变更、导出、本地重新分享和错误恢复。
 - 本地 SQL 验证使用合成家庭与用户。可运行 `node scripts/verify-v3-postgres.mjs <PGlite 安装目录>`。静态和页面专项脚本分别为 `verify-static.js`、`verify-v3-home-profile.js`、`verify-inventory.js`、`verify-medication.js`。实际通过数与覆盖范围以本轮验收报告为准。
 - Windows 本机 PostgreSQL 回归可执行 `scripts/verify-v3-native.ps1 -PostgresBin <PostgreSQL bin 目录> -PgDriver <Node pg 包目录>`。脚本创建仅监听回环地址的合成测试库，使用两个独立连接验证重试和计划版本竞争，执行仓库漏服语句，并从停库快照恢复到另一目录核对数据和权限。云端调度器启用、次数和角色仍须在目标环境验证。
+- 指定 `-PostgrestExe <PostgREST exe 路径>` 会额外启动只监听回环地址的 PostgREST，通过小程序版 SDK 验证真实 HTTP。2026-11-26 使用 PostgREST 16.6 与 PostgreSQL 17.12 通过。脚本为模拟 `wx` 提供合成登录响应，验证工作区 SDK 的请求形状、JWT 角色、RLS 和数据库函数对外返回。 [PostgREST RPC 文档](https://docs.postgrest.org/en/stable/references/api/functions.html) · [PostgREST 16.6](https://github.com/PostgREST/postgrest/releases/tag/v16.6)
 - 同一事务执行失败时回滚该文件。若前序文件已提交，停止切换，核对已应用文件及客户端状态，在隔离副本验证修复后再重试。恢复旧版需同时考虑已变更的函数、授权、数据和前端兼容。
 - 已有业务写入后的恢复优先前向修复。确需还原时，先保全当前库，审查切换后新增或已修改的数据，在隔离库验证恢复点与数据回放，并由数据库负责人确认后再恢复。旧 RLS 和写权限恢复属于单独的权限变更，需要对应验收。
 - 当前场次沿用设备当地日历和时间生成，存为 UTC 时间戳，按当前设备的本地日期切分今日任务。跨时区旅行、夏令时边界和家庭统一时区需单独实测。

@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory)][string] $PostgresBin,
-  [Parameter(Mandatory)][string] $PgDriver
+  [Parameter(Mandatory)][string] $PgDriver,
+  [string] $PostgrestExe
 )
 
 # This harness initializes a disposable, loopback-only cluster with synthetic data.
@@ -64,6 +65,17 @@ try {
   $output | Write-Output
   $database = ($output | Select-String '^FIXTURE_DATABASE=(mi_v3_[0-9a-f]{32})$').Matches[0].Groups[1].Value
   if (!$database) { throw 'Synthetic fixture database missing' }
+
+  if ($PostgrestExe) {
+    $originalPath = $env:PATH
+    try {
+      $env:PATH = "$PostgresBin;$originalPath"
+      & node (Join-Path $PSScriptRoot 'verify-v3-rest.mjs') $PostgrestExe $PgDriver $port $database
+      if ($LASTEXITCODE -ne 0) { throw 'PostgREST and SDK integration tests failed' }
+    } finally {
+      $env:PATH = $originalPath
+    }
+  }
 
   $before = Read-FixtureState $database
   Invoke-Pg pg_ctl -D $data -m fast -w stop | Out-Null
