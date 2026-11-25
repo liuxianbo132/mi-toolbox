@@ -60,29 +60,39 @@ Page({
     this.restore()
   },
 
+  onUnload() {
+    this.unloaded = true
+    this.conflictRequestId = (this.conflictRequestId || 0) + 1
+  },
+
   async restore() {
     if (this.restoring) return
     this.restoring = true
     this.setData({ authState: 'checking', loadError: '' })
     try {
-      const { data: session, error } = await getApp().ensureSession()
+      const app = getApp()
+      const { data: session, error } = await app.ensureSession()
+      if (this.unloaded) return
       if (error) throw error
       const uid = session && session.user && session.user.id
       if (!uid) {
         this.setData({ authState: 'signed-out' })
         return
       }
+      const sessionVersion = app.sessionVersion
       const { data: mine, error: householdError } = await cloud.database
         .from('members').select('household_id').eq('owner_id', uid).is('left_at', null).limit(1)
+      if (this.unloaded) return
+      if (sessionVersion !== app.sessionVersion) throw new Error('Session changed')
       if (householdError) throw householdError
       const row = mine && mine[0]
       if (!row) {
         this.setData({ authState: 'no-household' })
         return
       }
-      await this.loadRefs(row.household_id)
+      await this.loadRefs(row.household_id, sessionVersion)
     } catch (e) {
-      this.setData({ authState: 'error', loadError: '用药计划暂时无法加载，请重试。' })
+      if (!this.unloaded) this.setData({ authState: 'error', loadError: '用药计划暂时无法加载，请重试。' })
     } finally {
       this.restoring = false
     }
@@ -100,7 +110,7 @@ Page({
     this.restore()
   },
 
-  async loadRefs(hid) {
+  async loadRefs(hid, sessionVersion) {
     const { planId, lockedItemId, memberIndex, medicineIndex } = this.data
     const [memberRes, itemRes, planRes] = await Promise.all([
       cloud.database.from('members').select('id, nickname').eq('household_id', hid).is('left_at', null),
@@ -113,6 +123,8 @@ Page({
         .select('id, item_id, member_id, times, freq, start_date, end_date, miss_threshold_minutes, status, updated_at')
         .eq('id', planId).eq('household_id', hid).limit(1) : null,
     ])
+    if (this.unloaded) return
+    if (sessionVersion !== getApp().sessionVersion) throw new Error('Session changed')
     if (memberRes.error || itemRes.error || (planRes && planRes.error)) throw new Error('Plan references unavailable')
 
     const members = memberRes.data || []
@@ -162,6 +174,7 @@ Page({
       next.startDate = toDateOnly(new Date())
     }
 
+    this.loadedSessionVersion = sessionVersion
     this.setData(next)
     await this.checkSelection()
   },
@@ -255,8 +268,22 @@ Page({
     return ''
   },
 
+  canSaveWithSession(app) {
+    if (this.unloaded) return false
+    if (this.loadedSessionVersion === app.sessionVersion) return true
+    this.setData({
+      authState: 'unavailable',
+      loadError: this.pendingSave
+        ? '登录状态已变化，请用原账号核对该用药计划。'
+        : '登录状态已变化，请返回后重新打开用药计划。',
+    })
+    return false
+  },
+
   async onSave() {
     if (this.data.authState !== 'ready' || this.data.saving) return
+    const app = getApp()
+    if (!this.canSaveWithSession(app)) return
     if (!this.pendingSave) {
       const error = this.validatePlan()
       if (error) {
@@ -286,9 +313,11 @@ Page({
           end_date: d.endDate,
           miss_threshold_minutes: Number(THRESHOLD_OPTIONS[d.thresholdIndex]),
         }
+        const requestId = await makeRequestId()
+        if (!this.canSaveWithSession(app)) return
         this.pendingSave = {
           p_plan_id: d.planId || null,
-          p_request_id: await makeRequestId(),
+          p_request_id: requestId,
           p_fields: fields,
           p_rows: scheduled.map((scheduledAt) => ({ scheduled_at: scheduledAt })),
           p_expected_updated_at: d.planId ? this.planUpdatedAt : null,
@@ -296,6 +325,7 @@ Page({
       }
 
       const { data, error } = await cloud.database.rpc('save_med_plan_atomic', this.pendingSave)
+      if (!this.canSaveWithSession(app)) return
       if (error || !data || typeof data.ok !== 'boolean') throw error || new Error('Unconfirmed save result')
       this.pendingSave = null
       if (!data.ok) {
@@ -308,6 +338,7 @@ Page({
       wx.showToast({ title: '计划已保存', icon: 'success' })
       wx.navigateBack()
     } catch (e) {
+      if (!this.canSaveWithSession(app)) return
       if (e && e.code === 'INVALID_LOCAL_DOSE_TIME') {
         this.setData({ saveError: e.message })
         return
@@ -320,7 +351,7 @@ Page({
           : '暂时无法保存，请重试。',
       })
     } finally {
-      this.setData({ saving: false })
+      if (!this.unloaded) this.setData({ saving: false })
     }
   },
 })
