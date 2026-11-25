@@ -110,7 +110,11 @@ Page({
     } catch (error) {
       if (request !== this.loadRequest) return
       this.clearInventoryData(false)
-      this.setData({ authState: 'error', loadError: (error && error.message) || '请检查网络后重试' })
+      const schemaUnavailable = error && (error.code === '42703' || /\bleft_at\b/.test(error.message || ''))
+      this.setData({
+        authState: 'error',
+        loadError: schemaUnavailable ? '库存服务版本尚未同步，请稍后重试' : '暂时无法读取家庭库存，请检查网络后重试',
+      })
     }
   },
 
