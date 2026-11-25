@@ -1,10 +1,11 @@
 {
   "name": "xiaomi-toolbox",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "private": true,
   "description": "小咪工具箱：家庭物品保质期与用药管理微信小程序",
   "scripts": {
-    "build-npm": "echo '微信开发者工具/发布链路执行 构建 npm'"
+    "build-npm": "echo '微信开发者工具/发布链路执行 构建 npm'",
+    "test": "node scripts/verify-static.js && node scripts/verify-product-assets.js && node scripts/verify-v3-session.js && node scripts/verify-inventory.js && node scripts/verify-medication.js && node scripts/verify-v3-home-profile.js"
   },
   "dependencies": {
     "@tencent-ai/workbuddy-cloud-sdk": "^0.1.4-dev.71e5d1e.202611161655"

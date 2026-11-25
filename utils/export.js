@@ -69,12 +69,12 @@ const ITEM_CSV_COLUMNS = [
 
 const PAGE_SIZE = 500
 
-// 分页拉取单表：按 id 升序保证翻页稳定，短页即视为末页，硬上限兜底防止无限循环
+// 多读取一条以区分刚好达到上限与数据未导出完整。
 async function fetchTable(def, hid) {
   const pageSize = Math.min(PAGE_SIZE, def.max)
   const rows = []
-  for (let from = 0; from < def.max; from += pageSize) {
-    const to = Math.min(from + pageSize - 1, def.max - 1)
+  for (let from = 0; from <= def.max; from += pageSize) {
+    const to = Math.min(from + pageSize - 1, def.max)
     const res = await cloud.database
       .from(def.table)
       .select(def.columns)
@@ -86,6 +86,9 @@ async function fetchTable(def, hid) {
     }
     const page = (res && res.data) || []
     rows.push.apply(rows, page)
+    if (rows.length > def.max) {
+      throw new Error('当前数据超过单次导出上限，未生成备份')
+    }
     if (page.length < to - from + 1) break
   }
   return rows
@@ -105,7 +108,10 @@ function cellText(value) {
 
 // CSV 转义：含逗号、双引号或换行时整字段双引号包裹，内部双引号双写
 function csvCell(value) {
-  const text = cellText(value)
+  let text = cellText(value)
+  if (typeof value === 'string' && /^[\t\r\n]|^\s*[=+@-]/.test(text)) {
+    text = "'" + text
+  }
   if (text.indexOf(',') >= 0 || text.indexOf('"') >= 0 || text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0) {
     return '"' + text.replace(/"/g, '""') + '"'
   }
@@ -124,9 +130,13 @@ function buildItemsCsv(items) {
   return '\uFEFF' + lines.join('\r\n')
 }
 
-async function buildFamilyExport(hid) {
+async function buildFamilyExport(hid, format = 'json') {
   if (hid === undefined || hid === null || hid === '') {
     throw new Error('缺少家庭 id')
+  }
+  if (format === 'csv') {
+    const items = await fetchTable(TABLES[0], hid)
+    return { itemsCsv: buildItemsCsv(items) }
   }
   const tables = {}
   const stats = {}

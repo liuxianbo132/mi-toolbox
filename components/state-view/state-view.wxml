@@ -1,5 +1,5 @@
 <view class="state-card {{compact ? 'is-compact' : ''}}">
-  <image wx:if="{{icon}}" class="state-icon" src="{{icon}}" mode="aspectFit" />
+  <image wx:if="{{icon}}" class="state-icon {{illustration ? 'state-illustration' : ''}}" src="{{icon}}" mode="aspectFit" aria-hidden="true" />
   <view wx:if="{{title}}" class="state-title">{{title}}</view>
   <view wx:if="{{desc}}" class="state-desc">{{desc}}</view>
   <slot />

@@ -4,8 +4,9 @@ const { toDateOnly } = require('../../utils/date')
 // 依从性报告（只读）：口径 = 本人（当前 session 用户在 members 中 owner_id 的行）
 // 依从率 = taken ÷（taken + missed）；柱状图按自然日分组
 const BAR_MAX = 200 // 柱子可用高度（chart-box 240rpx 内预留 label 空间）
-const LOOKBACK_DAYS = 30
 const MAX_MISSED = 20
+const PAGE_SIZE = 500
+const FILTER_SIZE = 100
 
 function pad2(n) {
   return String(n).padStart(2, '0')
@@ -33,12 +34,25 @@ function fmtHM(d) {
   return pad2(d.getHours()) + ':' + pad2(d.getMinutes())
 }
 
-// 依从率分档：>=80 绿 / 40-79 橙 / <40 红
-function tierOf(rate) {
-  if (rate === null) return ''
-  if (rate >= 80) return 'green'
-  if (rate >= 40) return 'amber'
-  return 'red'
+async function readRows(makeQuery) {
+  const rows = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await makeQuery().order('id', { ascending: true }).range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+    const page = data || []
+    rows.push(...page)
+    if (page.length < PAGE_SIZE) return rows
+  }
+}
+
+async function readFilteredRows(ids, makeQuery) {
+  const rows = []
+  for (let offset = 0; offset < ids.length; offset += FILTER_SIZE) {
+    const chunk = ids.slice(offset, offset + FILTER_SIZE)
+    const page = await readRows(() => makeQuery(chunk))
+    rows.push(...page)
+  }
+  return rows
 }
 
 // 本周（周一 00:00 起）/ 本月（1 号 00:00 起）→ [start, end)
@@ -61,17 +75,18 @@ Page({
     authState: 'checking', // checking | signed-out | no-household | ready
     loginLoading: false,
     loginError: '',
+    memberName: '',
     loading: true,
     loadError: '',
     range: 'week', // week | month
     hasRate: false,
     rateText: '—',
-    rateClass: '',
     taken: 0,
     missed: 0,
     pending: 0,
     chart: [],
     missedList: [],
+    chartScroll: false,
   },
 
   onShow() {
@@ -80,20 +95,29 @@ Page({
   },
 
   async restore() {
+    if (this.restoring) return
+    this.restoring = true
+    this.statsRequestId = (this.statsRequestId || 0) + 1
     this.setData({ authState: 'checking', loadError: '' })
     try {
       const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
+      if (error) throw error
+      if (!session) {
         this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadHousehold()
+      await this.loadHousehold(session.user && session.user.id)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      this.householdId = null
+      this.memberId = null
+      this.setData({ authState: 'error', loading: false, loadError: '家庭信息暂时无法加载，请重试。' })
+    } finally {
+      this.restoring = false
     }
   },
 
   async onwechatlogin() {
+    if (this.data.loginLoading) return
     this.setData({ loginLoading: true, loginError: '' })
     const res = await getApp().loginWithWechat()
     this.setData({ loginLoading: false })
@@ -105,18 +129,18 @@ Page({
   },
 
   // 本人成员档案：members 中 owner_id = 当前 uid 的行
-  async loadHousehold() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
+  async loadHousehold(uid) {
     if (!uid) {
       this.setData({ authState: 'signed-out' })
       return
     }
-    const { data: mine } = await cloud.database
+    const { data: mine, error } = await cloud.database
       .from('members')
-      .select('id, household_id')
+      .select('id, household_id, nickname')
       .eq('owner_id', uid)
+      .is('left_at', null)
       .limit(1)
+    if (error) throw error
     const row = mine && mine[0]
     if (!row) {
       this.setData({ authState: 'no-household', loading: false })
@@ -124,65 +148,43 @@ Page({
     }
     this.householdId = row.household_id
     this.memberId = row.id
-    this.setData({ authState: 'ready' })
+    this.setData({ authState: 'ready', memberName: row.nickname || '本人' })
     await this.loadData(this.householdId, this.memberId)
   },
 
-  // 近 30 天数据（覆盖本周与本月），后续切换范围只在前端重算
   async loadData(hid, memberId) {
+    const requestId = this.statsRequestId = (this.statsRequestId || 0) + 1
     this.setData({ loading: true, loadError: '' })
-    const today = startOfDay(new Date())
-    const since = addDays(today, -LOOKBACK_DAYS)
-    const until = addDays(today, 1)
+    try {
+      const now = new Date()
+      const week = rangeOf('week', now)
+      const month = rangeOf('month', now)
+      const since = new Date(Math.min(week.start, month.start)).toISOString()
+      const until = month.end.toISOString()
+      const plans = await readRows(() => cloud.database.from('medication_plans')
+        .select('id, item_id').eq('household_id', hid).eq('member_id', memberId))
 
-    const [planRes, doseRes, itemRes] = await Promise.all([
-      cloud.database
-        .from('medication_plans')
-        .select('id, item_id, member_id')
-        .eq('household_id', hid)
-        .limit(200),
-      cloud.database
-        .from('medication_doses')
-        .select('id, plan_id, scheduled_at, confirmed_at, status')
-        .eq('household_id', hid)
-        .gte('scheduled_at', since.toISOString())
-        .lt('scheduled_at', until.toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(1000),
-      // 名称映射不过滤 is_deleted（契约 v2.0）：已删药品的历史统计仍需显示原名
-      cloud.database
-        .from('items')
-        .select('id, name')
-        .eq('household_id', hid)
-        .limit(500),
-    ])
-
-    const err = planRes.error || doseRes.error || itemRes.error
-    if (err) {
-      this.setData({ loading: false, loadError: err.message || '数据加载失败' })
-      return
+      const planIds = plans.map((p) => p.id)
+      const itemIds = Array.from(new Set(plans.map((p) => p.item_id)))
+      const [doses, items] = await Promise.all([
+        readFilteredRows(planIds, (ids) => cloud.database.from('medication_doses')
+          .select('id, plan_id, scheduled_at, status').eq('household_id', hid).in('plan_id', ids)
+          .gte('scheduled_at', since).lt('scheduled_at', until)),
+        // 软删除药品仍用于历史记录的名称映射。
+        readFilteredRows(itemIds, (ids) => cloud.database.from('items')
+          .select('id, name').eq('household_id', hid).in('id', ids)),
+      ])
+      if (requestId !== this.statsRequestId) return
+      const itemName = new Map(items.map((i) => [String(i.id), i.name]))
+      const planItemName = new Map(plans.map((p) => [String(p.id), itemName.get(String(p.item_id))]))
+      this.raw = { doses, planItemName }
+      this.compute()
+      this.setData({ loading: false })
+    } catch (e) {
+      if (requestId !== this.statsRequestId) return
+      this.raw = null
+      this.setData({ loading: false, loadError: '依从性报告暂时无法加载，请重试。' })
     }
-
-    const itemName = {}
-    ;(itemRes.data || []).forEach(function (i) {
-      itemName[i.id] = i.name
-    })
-
-    const myPlanIds = {}
-    const planItemName = {}
-    ;(planRes.data || []).forEach(function (p) {
-      if (String(p.member_id) !== String(memberId)) return
-      myPlanIds[p.id] = true
-      planItemName[p.id] = itemName[p.item_id] || '未知药品'
-    })
-
-    const myDoses = (doseRes.data || []).filter(function (d) {
-      return myPlanIds[d.plan_id]
-    })
-
-    this.raw = { doses: myDoses, planItemName: planItemName }
-    this.setData({ loading: false })
-    this.compute()
   },
 
   switchrange(e) {
@@ -231,7 +233,7 @@ Page({
           ms: ms,
           dateText: fmtMMDD(time),
           timeText: fmtHM(time),
-          name: raw.planItemName[d.plan_id] || '未知药品',
+          name: raw.planItemName.get(String(d.plan_id)) || '未知药品',
         })
       } else if (d.status === 'pending') {
         pending++
@@ -250,12 +252,8 @@ Page({
       chart.push({
         key: key,
         label: fmtMD(cursor),
-        rate: dayRate === null ? 0 : dayRate,
-        hasData: dayDenom > 0,
-        taken: cell.taken,
-        missed: cell.missed,
-        barH: dayDenom > 0 ? Math.max(6, Math.round((dayRate / 100) * BAR_MAX)) : 4,
-        barClass: dayDenom > 0 ? 'bar-' + tierOf(dayRate) : 'bar-empty',
+        summary: dayDenom > 0 ? dayRate + '%' : '无数据',
+        barH: dayDenom > 0 ? Math.max(6, Math.round((dayRate / 100) * BAR_MAX)) : 0,
       })
     }
 
@@ -272,8 +270,8 @@ Page({
       pending: pending,
       hasRate: rate !== null,
       rateText: rate === null ? '—' : String(rate),
-      rateClass: rate === null ? '' : 'rate-' + tierOf(rate),
       chart: chart,
+      chartScroll: chart.length > 7 || this.data.largeText,
       missedList: missedList,
     })
   },

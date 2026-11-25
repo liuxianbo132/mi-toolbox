@@ -1,58 +1,59 @@
 const { cloud } = require('../../utils/cloud')
-const { plansAccess, dosesAccess, createDosesBulk } = require('../../utils/data-access')
 const { buildDoseTimes, courseDays, MAX_COURSE_DAYS } = require('../../utils/plan-doses')
-const { matchAllergies, hitsText } = require('../../utils/allergy')
+const { matchAllergies, hitsText, hasForbidden } = require('../../utils/allergy')
+const { toDateOnly } = require('../../utils/date')
+const { makeRequestId } = require('../../utils/request-id')
 
-// 阈值选项：10~120 步进 5（契约 v1.7 #10）
-const THRESHOLD_OPTIONS = []
-for (let v = 10; v <= 120; v += 5) THRESHOLD_OPTIONS.push(String(v))
-
-function uniqTimes(list) {
-  const seen = {}
-  const out = []
-  ;(list || []).forEach(function (t) {
-    const v = String(t || '').trim()
-    if (!v || seen[v]) return
-    seen[v] = true
-    out.push(v)
-  })
-  return out.sort()
+const THRESHOLD_OPTIONS = Array.from({ length: 23 }, (_, index) => String(10 + index * 5))
+const SAVE_ERRORS = {
+  forbidden_allergy: '服药人档案匹配禁用关联，计划未保存',
+  schedule_changed: '计划已变化，请返回并重新打开',
+  not_found: '计划不存在，请返回刷新',
+  invalid_transition: '计划状态已变化，请返回刷新',
+  forbidden_household: '无权保存此计划',
+  not_signed_in: '登录状态已失效，请重新登录',
+  invalid_references: '药品或服药人已变更，请重新选择',
+  invalid_plan_target: '药品或服药人已变更，请返回刷新',
+  invalid_schedule: '提醒时间无效，请核对疗程和时间点',
+  request_conflict: '保存请求已变化，请返回查看计划',
 }
 
 Page({
   data: {
     largeText: false,
-    authState: 'checking', // checking | signed-out | no-household | ready
+    authState: 'checking',
+    loadError: '',
     loginLoading: false,
     loginError: '',
     saving: false,
+    saveUnconfirmed: false,
+    saveError: '',
     planId: null,
     lockedItemId: null,
-    lockedItemName: '',
     householdId: null,
     members: [],
     memberNames: [],
-    memberIndex: 0,
+    memberChoices: [],
+    memberIndex: -1,
     medicines: [],
     medicineNames: [],
-    medicineIndex: 0,
-    timeList: ['08:00'],
+    medicineChoices: [],
+    medicineIndex: -1,
+    timeList: [''],
     freqIndex: 0,
     freqOptions: ['每天', '隔天'],
     startDate: '',
     endDate: '',
     thresholdOptions: THRESHOLD_OPTIONS,
     thresholdIndex: THRESHOLD_OPTIONS.indexOf('30'),
-    // 过敏冲突提示（P0-1 修复：按选中服药人 member_id 的档案判断，不再按登录用户）
-    conflictState: 'ready', // ready | error（error 时显示冲突未知警示，不显示为安全）
-    myHits: [],
+    conflictState: 'idle',
     hitsSummary: '',
     hitsWorst: '',
   },
 
-  onLoad(options) {
-    this.setData({ largeText: getApp().globalData.largeText })
+  onLoad(options = {}) {
     this.setData({
+      largeText: getApp().globalData.largeText,
       planId: options.id || null,
       lockedItemId: options.item_id || null,
     })
@@ -60,20 +61,35 @@ Page({
   },
 
   async restore() {
-    this.setData({ authState: 'checking' })
+    if (this.restoring) return
+    this.restoring = true
+    this.setData({ authState: 'checking', loadError: '' })
     try {
       const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
+      if (error) throw error
+      const uid = session && session.user && session.user.id
+      if (!uid) {
         this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadHousehold()
+      const { data: mine, error: householdError } = await cloud.database
+        .from('members').select('household_id').eq('owner_id', uid).is('left_at', null).limit(1)
+      if (householdError) throw householdError
+      const row = mine && mine[0]
+      if (!row) {
+        this.setData({ authState: 'no-household' })
+        return
+      }
+      await this.loadRefs(row.household_id)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      this.setData({ authState: 'error', loadError: '用药计划暂时无法加载，请重试。' })
+    } finally {
+      this.restoring = false
     }
   },
 
   async onWechatLogin() {
+    if (this.data.loginLoading) return
     this.setData({ loginLoading: true, loginError: '' })
     const res = await getApp().loginWithWechat()
     this.setData({ loginLoading: false })
@@ -84,200 +100,110 @@ Page({
     this.restore()
   },
 
-  async loadHousehold() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
-    if (!uid) {
-      this.setData({ authState: 'signed-out' })
-      return
-    }
-    const { data: mine } = await cloud.database
-      .from('members')
-      .select('household_id')
-      .eq('owner_id', uid)
-      .limit(1)
-    const row = mine && mine[0]
-    if (!row) {
-      this.setData({ authState: 'no-household' })
-      return
-    }
-    this.setData({ householdId: row.household_id, authState: 'ready' })
-    await this.loadRefs(row.household_id)
-  },
-
   async loadRefs(hid) {
-    const memberRes = await cloud.database
-      .from('members')
-      .select('id, owner_id, nickname, role')
-      .eq('household_id', hid)
-    const itemRes = await cloud.database
-      .from('items')
-      .select('id, name')
-      .eq('household_id', hid)
-      .eq('category', 'medicine')
-      .eq('is_deleted', false)
+    const { planId, lockedItemId, memberIndex, medicineIndex } = this.data
+    const [memberRes, itemRes, planRes] = await Promise.all([
+      cloud.database.from('members').select('id, nickname').eq('household_id', hid).is('left_at', null),
+      cloud.database.from('items')
+        .select('id, name')
+        .eq('household_id', hid)
+        .eq('category', 'medicine')
+        .eq('is_deleted', false),
+      planId ? cloud.database.from('medication_plans')
+        .select('id, item_id, member_id, times, freq, start_date, end_date, miss_threshold_minutes, status, updated_at')
+        .eq('id', planId).eq('household_id', hid).limit(1) : null,
+    ])
+    if (memberRes.error || itemRes.error || (planRes && planRes.error)) throw new Error('Plan references unavailable')
 
     const members = memberRes.data || []
     const medicines = itemRes.data || []
-    const memberNames = members.map(function (m) {
-      return m.nickname || '成员'
-    })
-    const medicineNames = medicines.map(function (i) {
-      return i.name
-    })
-
-    let memberIndex = this.data.memberIndex
-    let medicineIndex = this.data.medicineIndex
-    let lockedItemName = ''
-    if (this.data.lockedItemId) {
-      for (let i = 0; i < medicines.length; i++) {
-        if (String(medicines[i].id) === String(this.data.lockedItemId)) {
-          medicineIndex = i
-          lockedItemName = medicines[i].name
-          break
-        }
-      }
+    const memberNames = members.map((m) => m.nickname || '成员')
+    const medicineNames = medicines.map((i) => i.name)
+    const next = {
+      householdId: hid,
+      members,
+      memberNames,
+      memberChoices: ['选择成员', ...memberNames],
+      memberIndex,
+      medicines,
+      medicineNames,
+      medicineChoices: ['选择药品', ...medicineNames],
+      medicineIndex,
+      authState: 'ready',
     }
 
-    this.setData({
-      members: members,
-      memberNames: memberNames,
-      medicines: medicines,
-      medicineNames: medicineNames,
-      memberIndex: memberIndex,
-      medicineIndex: medicineIndex,
-      lockedItemName: lockedItemName,
-    })
-
-    if (this.data.planId) {
-      await this.loadPlan()
+    if (planId) {
+      const p = planRes.data && planRes.data[0]
+      if (!p || p.status !== 'active') {
+        this.setData({ authState: 'unavailable', loadError: '只能编辑进行中的计划。' })
+        return
+      }
+      next.memberIndex = members.findIndex((m) => String(m.id) === String(p.member_id))
+      next.medicineIndex = medicines.findIndex((i) => String(i.id) === String(p.item_id))
+      if (next.memberIndex < 0 || next.medicineIndex < 0) {
+        this.setData({ authState: 'unavailable', loadError: '原药品或服药人已不在可用列表中。' })
+        return
+      }
+      this.planUpdatedAt = p.updated_at
+      next.timeList = Array.isArray(p.times) ? p.times : []
+      next.freqIndex = p.freq === 'alternate_day' ? 1 : 0
+      next.startDate = p.start_date
+      next.endDate = p.end_date || ''
+      const thresholdIndex = THRESHOLD_OPTIONS.indexOf(String(p.miss_threshold_minutes))
+      next.thresholdIndex = thresholdIndex < 0 ? THRESHOLD_OPTIONS.indexOf('30') : thresholdIndex
     } else {
-      // 新建默认疗程：今天 ~ 今天+6 天
-      const now = new Date()
-      const end = new Date(now.getTime() + 6 * 86400000)
-      this.setData({ startDate: this.formatDate(now), endDate: this.formatDate(end) })
-    }
-    const current = this.data.medicines[this.data.medicineIndex]
-    const currentMember = this.data.members[this.data.memberIndex]
-    this.loadConflict(current && current.id, currentMember && currentMember.id)
-  },
-
-  // 按选中服药人 member_id 的过敏档案 ∩ 选中药品关联（P0-1：切换成员/药品后实时重算）
-  // 档案或关联查询失败 → conflictState='error'，显示「冲突未知」，不得显示为安全
-  async loadConflict(itemId, memberId) {
-    if (!itemId || !memberId) {
-      this.setData({ conflictState: 'ready', myHits: [], hitsSummary: '', hitsWorst: '' })
-      return
-    }
-    const linkRes = await cloud.database
-      .from('drug_allergy_links')
-      .select('id, allergen, kind')
-      .eq('item_id', itemId)
-    if (linkRes.error) {
-      this.setData({ conflictState: 'error', myHits: [], hitsSummary: '', hitsWorst: 'unknown' })
-      return
-    }
-    const links = linkRes.data || []
-    const alRes = await cloud.database
-      .from('allergies')
-      .select('allergen')
-      .eq('member_id', memberId)
-    if (alRes.error) {
-      this.setData({ conflictState: 'error', myHits: [], hitsSummary: '', hitsWorst: 'unknown' })
-      return
-    }
-    const hits = matchAllergies(
-      (alRes.data || []).map(function (a) {
-        return a.allergen
-      }),
-      links
-    )
-    let hitsWorst = ''
-    if (hits.length) {
-      hitsWorst = 'caution'
-      for (let i = 0; i < hits.length; i++) {
-        if (hits[i].kind === 'forbidden') {
-          hitsWorst = 'forbidden'
-          break
+      if (lockedItemId) {
+        next.medicineIndex = medicines.findIndex((i) => String(i.id) === String(lockedItemId))
+        if (next.medicineIndex < 0) {
+          this.setData({ authState: 'unavailable', loadError: '该药品已不在可用库存中。' })
+          return
         }
       }
+      next.startDate = toDateOnly(new Date())
     }
-    this.setData({ conflictState: 'ready', myHits: hits, hitsSummary: hitsText(hits), hitsWorst: hitsWorst })
+
+    this.setData(next)
+    await this.checkSelection()
   },
 
-  formatDate(d) {
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return d.getFullYear() + '-' + m + '-' + day
-  },
+  async checkSelection() {
+    const requestId = this.conflictRequestId = (this.conflictRequestId || 0) + 1
+    const { medicines, medicineIndex, members, memberIndex, householdId } = this.data
+    const medicine = medicines[medicineIndex]
+    const member = members[memberIndex]
+    this.setData({ conflictState: medicine && member ? 'loading' : 'idle', hitsSummary: '', hitsWorst: '' })
+    if (!medicine || !member) return
 
-  async loadPlan() {
-    const { data, error } = await cloud.database
-      .from('medication_plans')
-      .select('id, item_id, member_id, times, freq, start_date, end_date, miss_threshold_minutes, status')
-      .eq('id', this.data.planId)
-      .limit(1)
-    const p = data && data[0]
-    if (error || !p) {
-      wx.showToast({ title: '计划不存在或已删除', icon: 'none' })
-      setTimeout(function () {
-        wx.navigateBack()
-      }, 1200)
-      return
+    try {
+      const [linkRes, allergyRes] = await Promise.all([
+        cloud.database.from('drug_allergy_links').select('allergen, kind')
+          .eq('household_id', householdId).eq('item_id', medicine.id),
+        cloud.database.from('allergies').select('allergen')
+          .eq('household_id', householdId).eq('member_id', member.id),
+      ])
+      if (requestId !== this.conflictRequestId) return
+      if (linkRes.error || allergyRes.error) throw new Error('Allergy records unavailable')
+      const hits = matchAllergies((allergyRes.data || []).map((a) => a.allergen), linkRes.data)
+      const hitsWorst = hasForbidden(hits) ? 'forbidden' : hits.length ? 'caution' : ''
+      this.setData({ conflictState: 'ready', hitsSummary: hitsText(hits), hitsWorst })
+    } catch (e) {
+      if (requestId !== this.conflictRequestId) return
+      this.setData({ conflictState: 'error' })
     }
-    if (p.status !== 'active') {
-      wx.showToast({ title: '仅进行中的计划可编辑', icon: 'none' })
-      setTimeout(function () {
-        wx.navigateBack()
-      }, 1200)
-      return
-    }
-    let memberIndex = 0
-    for (let i = 0; i < this.data.members.length; i++) {
-      if (String(this.data.members[i].id) === String(p.member_id)) {
-        memberIndex = i
-        break
-      }
-    }
-    let medicineIndex = this.data.medicineIndex
-    for (let i = 0; i < this.data.medicines.length; i++) {
-      if (String(this.data.medicines[i].id) === String(p.item_id)) {
-        medicineIndex = i
-        break
-      }
-    }
-    const thresholdText = String(p.miss_threshold_minutes || 30)
-    let thresholdIndex = this.data.thresholdOptions.indexOf(thresholdText)
-    if (thresholdIndex < 0) thresholdIndex = this.data.thresholdOptions.indexOf('30')
-    this.setData({
-      memberIndex: memberIndex,
-      medicineIndex: medicineIndex,
-      timeList: (p.times && p.times.length ? p.times : ['08:00']).slice(),
-      freqIndex: p.freq === 'alternate_day' ? 1 : 0,
-      startDate: p.start_date,
-      endDate: p.end_date,
-      thresholdIndex: thresholdIndex,
-    })
   },
 
   onMemberChange(e) {
-    this.setData({ memberIndex: Number(e.detail.value) || 0 })
-    // P0-1：切换服药人后按新成员档案重算冲突
-    const medicine = this.data.medicines[this.data.medicineIndex]
-    const member = this.data.members[this.data.memberIndex]
-    this.loadConflict(medicine && medicine.id, member && member.id)
+    this.setData({ memberIndex: Number(e.detail.value) - 1, saveError: '' })
+    this.checkSelection()
   },
 
   onMedicineChange(e) {
-    const idx = Number(e.detail.value) || 0
-    this.setData({ medicineIndex: idx })
-    const medicine = this.data.medicines[idx]
-    const member = this.data.members[this.data.memberIndex]
-    this.loadConflict(medicine && medicine.id, member && member.id)
+    this.setData({ medicineIndex: Number(e.detail.value) - 1, saveError: '' })
+    this.checkSelection()
   },
 
   onFreqChange(e) {
-    this.setData({ freqIndex: Number(e.detail.value) || 0 })
+    this.setData({ freqIndex: Number(e.detail.value) })
   },
 
   onStartChange(e) {
@@ -289,154 +215,112 @@ Page({
   },
 
   onThresholdChange(e) {
-    this.setData({ thresholdIndex: Number(e.detail.value) || 0 })
+    this.setData({ thresholdIndex: Number(e.detail.value) })
   },
 
   onTimeChange(e) {
-    const index = Number(e.currentTarget.dataset.index)
-    const value = e.detail.value
     const list = this.data.timeList.slice()
-    list[index] = value
+    list[Number(e.currentTarget.dataset.index)] = e.detail.value
     this.setData({ timeList: list })
   },
 
   addTime() {
-    if (this.data.timeList.length >= 8) {
-      wx.showToast({ title: '时间点最多 8 个', icon: 'none' })
-      return
-    }
-    this.setData({ timeList: this.data.timeList.concat(['12:00']) })
+    if (this.data.timeList.length >= 8) return
+    this.setData({ timeList: this.data.timeList.concat(['']) })
   },
 
   removeTime(e) {
-    const index = Number(e.currentTarget.dataset.index)
     const list = this.data.timeList.slice()
-    list.splice(index, 1)
+    list.splice(Number(e.currentTarget.dataset.index), 1)
     this.setData({ timeList: list })
   },
 
-  // 保存：新建 = create plan + 整疗程生成；编辑 = update + 删未来 pending 重建（契约 v1.7 #5/#6）
-  async onSave() {
-    const member = this.data.members[this.data.memberIndex]
-    const medicine = this.data.medicines[this.data.medicineIndex]
-    if (!medicine) {
-      wx.showToast({ title: '请选择药品', icon: 'none' })
-      return
+  validatePlan() {
+    const d = this.data
+    const member = d.members[d.memberIndex]
+    const medicine = d.medicines[d.medicineIndex]
+    if (!medicine) return '请选择药品'
+    if (!member) return '请选择服药人'
+    if (d.conflictState !== 'ready') return '请先核对已登记的过敏关联'
+    if (d.hitsWorst === 'forbidden') return '档案匹配禁用关联，无法保存'
+    if (!d.timeList.length || d.timeList.some((t) => !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t))) {
+      return '请选择每个服药时间点'
     }
-    if (!member) {
-      wx.showToast({ title: '请选择服药人', icon: 'none' })
-      return
-    }
-    const times = uniqTimes(this.data.timeList)
-    if (!times.length) {
-      wx.showToast({ title: '请添加服药时间点', icon: 'none' })
-      return
-    }
-    if (!this.data.startDate || !this.data.endDate) {
-      wx.showToast({ title: '请选择疗程起止日期', icon: 'none' })
-      return
-    }
-    const days = courseDays(this.data.startDate, this.data.endDate)
-    if (isNaN(days) || days < 0) {
-      wx.showToast({ title: '结束日期不能早于开始日期', icon: 'none' })
-      return
-    }
-    // courseDays 返回的是日期差；起止日期均计入疗程，差值 180 已等于 181 天。
-    if (days >= MAX_COURSE_DAYS) {
-      wx.showToast({ title: '疗程不能超过 ' + MAX_COURSE_DAYS + ' 天', icon: 'none' })
-      return
-    }
-    if (this.data.saving) return
-    this.setData({ saving: true })
-
-    const freq = this.data.freqIndex === 1 ? 'alternate_day' : 'daily'
-    const payload = {
-      household_id: this.data.householdId,
-      item_id: medicine.id,
-      member_id: member.id,
-      times: times,
-      freq: freq,
-      start_date: this.data.startDate,
-      end_date: this.data.endDate,
-      miss_threshold_minutes: Number(this.data.thresholdOptions[this.data.thresholdIndex]),
-      status: 'active',
-    }
-
-    let planId = this.data.planId
-    if (planId) {
-      const upd = await plansAccess.update(planId, payload)
-      if (upd.error || !upd.data) {
-        this.setData({ saving: false })
-        wx.showToast({ title: (upd.error && upd.error.message) || '保存失败', icon: 'none' })
-        return
-      }
-    } else {
-      const created = await plansAccess.create(payload)
-      if (created.error || !created.data) {
-        this.setData({ saving: false })
-        wx.showToast({ title: (created.error && created.error.message) || '保存失败', icon: 'none' })
-        return
-      }
-      planId = created.data.id
-    }
-
-    const scheduled = buildDoseTimes({
-      startDate: payload.start_date,
-      endDate: payload.end_date,
-      times: payload.times,
-      freq: payload.freq,
-    })
-    const rows = scheduled.map(function (iso) {
-      return {
-        household_id: payload.household_id,
-        plan_id: planId,
-        scheduled_at: iso,
-        status: 'pending',
-      }
-    })
-
-    // P0-3：编辑路径优先原子 RPC（删未来 pending + 重建同事务，迁移 07）；未部署回退两步流程。
-    // 已发生的 taken/missed 两条路径都不动。
-    let bulk = { error: null }
-    if (this.data.planId) {
-      const repl = await cloud.database.rpc('replace_future_doses', {
-        p_plan_id: planId,
-        p_rows: scheduled.map(function (iso) { return { scheduled_at: iso } }),
-      })
-      if (repl.error || repl.data !== 'ok') {
-        await this.removeFuturePending(planId)
-        bulk = await createDosesBulk(rows)
-      }
-    } else {
-      bulk = await createDosesBulk(rows)
-    }
-    this.setData({ saving: false })
-    if (bulk.error) {
-      wx.showToast({ title: '计划已保存，提醒生成失败，请重新保存一次', icon: 'none', duration: 2500 })
-      setTimeout(function () {
-        wx.navigateBack()
-      }, 2500)
-      return
-    }
-    wx.showToast({ title: '已保存', icon: 'success' })
-    setTimeout(function () {
-      wx.navigateBack()
-    }, 600)
+    if (d.timeList.length > 48) return '时间点最多 48 个，请减少历史时间点'
+    if (new Set(d.timeList).size !== d.timeList.length) return '服药时间点不能重复'
+    if (!d.startDate || !d.endDate) return '请选择疗程起止日期'
+    const days = courseDays(d.startDate, d.endDate)
+    if (!Number.isFinite(days) || days < 0) return '结束日期不能早于开始日期'
+    if (days >= MAX_COURSE_DAYS) return '疗程不能超过 ' + MAX_COURSE_DAYS + ' 天'
+    return ''
   },
 
-  async removeFuturePending(planId) {
-    const nowMs = Date.now()
-    const { data, error } = await cloud.database
-      .from('medication_doses')
-      .select('id, scheduled_at, status')
-      .eq('plan_id', planId)
-      .eq('status', 'pending')
-    if (error) return
-    const future = (data || []).filter(function (d) {
-      return new Date(d.scheduled_at).getTime() > nowMs
-    })
-    for (let i = 0; i < future.length; i++) {
-      await dosesAccess.remove(future[i].id)
+  async onSave() {
+    if (this.data.authState !== 'ready' || this.data.saving) return
+    if (!this.pendingSave) {
+      const error = this.validatePlan()
+      if (error) {
+        this.setData({ saveError: error })
+        return
+      }
+    }
+
+    this.setData({ saving: true, saveError: '' })
+    try {
+      if (!this.pendingSave) {
+        const d = this.data
+        const freq = d.freqIndex === 1 ? 'alternate_day' : 'daily'
+        const times = [...d.timeList].sort()
+        // 以设备本地日历输入生成 UTC 时间戳，保留项目现有疗程时区口径。
+        const scheduled = buildDoseTimes({ startDate: d.startDate, endDate: d.endDate, times, freq, now: new Date() })
+        if (!d.planId && !scheduled.length) {
+          this.setData({ saveError: '请将结束日期设为今天或之后，并核对频次。' })
+          return
+        }
+        const fields = {
+          item_id: d.medicines[d.medicineIndex].id,
+          member_id: d.members[d.memberIndex].id,
+          times,
+          freq,
+          start_date: d.startDate,
+          end_date: d.endDate,
+          miss_threshold_minutes: Number(THRESHOLD_OPTIONS[d.thresholdIndex]),
+        }
+        this.pendingSave = {
+          p_plan_id: d.planId || null,
+          p_request_id: await makeRequestId(),
+          p_fields: fields,
+          p_rows: scheduled.map((scheduledAt) => ({ scheduled_at: scheduledAt })),
+          p_expected_updated_at: d.planId ? this.planUpdatedAt : null,
+        }
+      }
+
+      const { data, error } = await cloud.database.rpc('save_med_plan_atomic', this.pendingSave)
+      if (error || !data || typeof data.ok !== 'boolean') throw error || new Error('Unconfirmed save result')
+      this.pendingSave = null
+      if (!data.ok) {
+        this.setData({ saveUnconfirmed: false, saveError: SAVE_ERRORS[data.error] || '计划未保存，请核对后重试。' })
+        if (data.error === 'forbidden_allergy') this.checkSelection()
+        return
+      }
+
+      this.setData({ saveUnconfirmed: false })
+      wx.showToast({ title: '计划已保存', icon: 'success' })
+      wx.navigateBack()
+    } catch (e) {
+      if (e && e.code === 'INVALID_LOCAL_DOSE_TIME') {
+        this.setData({ saveError: e.message })
+        return
+      }
+      const saveUnconfirmed = !!this.pendingSave
+      this.setData({
+        saveUnconfirmed,
+        saveError: saveUnconfirmed
+          ? '保存结果暂未确认。重试会核对并继续本次保存。'
+          : '暂时无法保存，请重试。',
+      })
+    } finally {
+      this.setData({ saving: false })
     }
   },
 })

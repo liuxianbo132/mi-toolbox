@@ -4,6 +4,8 @@
 
 家庭成员共享一份库存；临期按红/橙/绿三分级提醒；药品支持过敏档案、冲突标红、用药计划、打卡与漏服红标；V2 增扫码录入、存放位置、操作流水与拍照识别。
 
+V3.0 的四个 Tab 聚焦今日任务、库存、用药和家庭设置。V3 写入依赖 `sql/08` 至 `sql/11`。测试环境完成迁移和登录回归后再切换客户端。 [工程交接](docs/briefs/v3-engineering.md) · [验收记录](docs/briefs/v3-delivery.md)
+
 ## 功能
 
 > 📷 真机截图待补：看板 / 库存 / 详情 / 用药 / 我的（5 张）
@@ -48,7 +50,8 @@ docs/          data-contract 数据契约 · test-plan 测试计划 · evidence 
 ## 验证
 
 ```bash
-node scripts/verify-static.js   # JSON / JS 语法 / 页面注册 / tabBar 图标 / assets 引用，当前 108 项 PASS
+npm test
+node scripts/verify-v3-postgres.mjs /absolute/path/to/@electric-sql/pglite
 ```
 
 ## 设计系统

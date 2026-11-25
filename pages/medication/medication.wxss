@@ -1,169 +1,196 @@
-/* 用药页 · 清晰的今日时间线与 Plans（Unslop 精修版） */
+.medication-page { padding: var(--space-3) var(--space-4) 56rpx; }
 
-.page { padding-bottom: 48rpx; }
-
-.entry-bar {
+.medication-heading,
+.progress-header,
+.section-head {
   display: flex;
-  gap: 12rpx;
-  padding: 16rpx 24rpx 0;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
 }
-.entry-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  flex: 1;
-  min-height: 88rpx;
-  padding: 0 12rpx;
-  border-radius: var(--radius-md);
+
+.medication-heading { margin-bottom: var(--space-2); }
+.medication-title {
+  color: var(--color-text-1);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.medication-date,
+.progress-pending,
+.plan-status {
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.medication-group,
+.task-progress,
+.loading-list {
+  overflow: hidden;
   background: var(--color-card);
-  box-shadow: var(--shadow-card);
-  color: var(--color-primary-ink);
-  font-size: 26rpx;
+  border-radius: var(--radius-lg);
 }
-.entry-ico { width: 36rpx; height: 36rpx; }
+
+.task-progress { margin-bottom: var(--space-2); padding: var(--space-3); }
+.progress-count { font-size: var(--font-lg); font-weight: 600; }
+.progress-track { margin-top: var(--space-2); }
+.progress-missed {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-red);
+  font-size: var(--font-sm);
+}
+
+.loading-list { padding: var(--space-4); }
+.loading-line {
+  width: 72%;
+  height: 32rpx;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+.loading-line-short { width: 48%; margin-top: var(--space-2); }
 
 .allergy-alert {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12rpx;
-  margin: 16rpx 24rpx 0;
-  padding: 12rpx 16rpx;
+  gap: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
-  background: var(--color-amber-bg);
-  font-size: 24rpx;
-  line-height: 1.5;
   color: var(--color-amber);
+  background: var(--color-amber-bg);
+  font-size: var(--font-sm);
 }
-.allergy-ico { width: 32rpx; height: 32rpx; flex-shrink: 0; }
-.allergy-alert text { flex: 1; }
+.allergy-alert view { flex: 1 1 320rpx; }
 
-.section-card {
-  margin: 20rpx 24rpx;
-  padding-bottom: 12rpx;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-}
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
+.medication-section { margin-top: var(--space-4); }
+.section-head { align-items: center; padding-left: var(--space-1); }
+.section-title { font-size: var(--font-lg); font-weight: 600; line-height: 1.35; }
+.medication-control {
+  flex-shrink: 0;
   min-height: 88rpx;
-  padding: 8rpx 24rpx;
+  width: auto !important;
+  margin: 0;
+  padding: 0 20rpx;
+  font-size: var(--font-sm);
 }
-.section-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--color-text-1);
-}
-.empty-inline {
-  padding: 24rpx 28rpx;
-  font-size: 26rpx;
-  line-height: 1.6;
-  color: var(--color-text-2);
-}
-.medication-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16rpx;
-  min-height: 132rpx;
-  padding: 16rpx 28rpx 24rpx;
-  color: var(--color-text-2);
-  font-size: 26rpx;
-  line-height: 1.6;
-}
-.medication-mascot { width: 88rpx; height: 88rpx; flex-shrink: 0; }
 
-.dose-row {
+.empty-inline,
+.medication-empty {
+  padding: var(--space-3);
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+.medication-empty { display: flex; align-items: center; gap: var(--space-2); }
+.medication-empty-icon { width: 112rpx; height: 112rpx; flex-shrink: 0; }
+.medication-name-line { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
+.medication-item-illu { width: 48rpx; height: 48rpx; border-radius: 12rpx; background: var(--color-bg); flex-shrink: 0; }
+
+.dose-row,
+.plan-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: var(--space-2);
   min-height: 116rpx;
-  padding: 16rpx 24rpx;
+  padding: var(--space-2) var(--space-3);
+}
+.dose-row + .dose-row,
+.plan-row + .plan-row,
+.history-link + .plan-row,
+.plan-row + .history-link,
+.medication-link + .medication-link {
   border-top: 1rpx solid var(--color-border);
 }
-.dose-row:first-child { border-top: none; }
+
 .dose-time {
-  width: 96rpx;
-  font-size: 32rpx;
-  font-weight: 600;
-  color: var(--color-text-1);
   flex-shrink: 0;
+  color: var(--color-text-1);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-.dose-main { flex: 1; min-width: 0; }
-.dose-name {
-  font-size: 30rpx;
+.dose-done .dose-time { color: var(--color-text-2); }
+.dose-main, .plan-main { flex: 1; min-width: 0; }
+.dose-name, .plan-name {
+  color: var(--color-text-1);
+  font-size: var(--font-md);
   font-weight: 600;
   line-height: 1.4;
-  color: var(--color-text-1);
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
-.conflict-line {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-top: 6rpx;
-}
-.conflict-ico { width: 28rpx; height: 28rpx; flex-shrink: 0; }
-.dose-meta {
+.dose-meta, .plan-meta {
   margin-top: 4rpx;
-  font-size: 24rpx;
-  line-height: 1.45;
   color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
-.dose-btn { flex-shrink: 0; }
-
-/* 右侧状态列：状态标签 + 打卡/更正按钮 + 禁用提示纵向排列 */
 .dose-side {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8rpx;
+  gap: var(--space-1);
   flex-shrink: 0;
 }
-/* 禁用药物不可打卡提示：红色文字，语义与 tag-red 一致，不用猫咪或图标弱化 */
-.dose-forbid-text {
-  font-size: 24rpx;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--color-red);
-}
-
-.plan-row {
+.dose-status { font-size: var(--font-sm); color: var(--color-text-2); }
+.conflict-line {
   display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  margin-top: 6rpx;
+  color: var(--color-amber);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+.conflict-forbidden { color: var(--color-red); font-size: var(--font-sm); font-weight: 600; }
+.conflict-ico { width: 28rpx; height: 28rpx; flex-shrink: 0; margin-top: 4rpx; }
+
+.medication-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 96rpx;
+  width: 100% !important;
+  margin: 0;
+  padding: 12rpx var(--space-3);
+  border-radius: 0;
+  background: var(--color-card);
+  color: var(--color-text-1);
+  font-size: var(--font-md);
+  line-height: 1.45;
+  text-align: left;
+}
+.medication-link::after { border: 0; }
+.medication-link-icon { width: 36rpx; height: 36rpx; flex-shrink: 0; }
+.medication-chevron { width: 32rpx; height: 32rpx; flex-shrink: 0; margin-left: auto; }
+.history-link { color: var(--color-primary-ink); }
+.medication-login { display: grid; gap: var(--space-2); margin-top: 140rpx; }
+
+.large-text .medication-title { font-size: 54rpx; }
+.large-text .dose-row,
+.large-text .plan-row { flex-wrap: wrap; }
+.large-text .dose-main { flex-basis: 65%; }
+.large-text .dose-side {
+  flex: 1 1 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 16rpx;
-  min-height: 132rpx;
-  padding: 16rpx 24rpx;
-  border-top: 1rpx solid var(--color-border);
 }
-.plan-row:first-child { border-top: none; }
-.plan-main { flex: 1; min-width: 0; }
-.plan-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--color-text-1);
-  word-break: break-all;
-}
-.plan-meta {
-  margin-top: 4rpx;
-  font-size: 24rpx;
-  line-height: 1.45;
-  color: var(--color-text-2);
-  word-break: break-all;
-}
-.plan-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8rpx;
-  flex-shrink: 0;
-}
-
-.login-card { margin-top: 140rpx; }
+.large-text .plan-main { flex-basis: 65%; }
+.large-text .medication-date,
+.large-text .progress-pending,
+.large-text .progress-missed,
+.large-text .dose-status,
+.large-text .allergy-alert,
+.large-text .conflict-line,
+.large-text .conflict-forbidden,
+.large-text .medication-empty,
+.large-text .plan-status { font-size: 28rpx; }
+.large-text .medication-control { font-size: 28rpx; }
+.large-text .medication-link { font-size: 34rpx; min-height: 104rpx; }

@@ -5,7 +5,9 @@ const { allergiesAccess } = require('../../utils/data-access')
 Page({
   data: {
     largeText: false,
-    authState: 'checking', // checking | signed-out | no-household | forbidden | ready
+    authState: 'checking',
+    loadState: 'loading',
+    loadError: '',
     loginLoading: false,
     loginError: '',
     householdId: null,
@@ -16,30 +18,33 @@ Page({
     saving: false,
   },
 
-  onLoad(options) {
+  onLoad(options = {}) {
     this.setData({ largeText: getApp().globalData.largeText })
-    this.setData({
-      memberId: options.member_id || null,
-      memberName: decodeURIComponent(options.nickname || ''),
-    })
+    this.requestedMemberId = options.member_id || null
     this.restore()
   },
 
   async restore() {
+    if (this.restoring) return
+    this.restoring = true
     this.setData({ authState: 'checking' })
     try {
       const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
+      if (error) throw error
+      if (!session) {
         this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadContext()
+      await this.loadContext(session.user && session.user.id)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      this.setData({ authState: 'error', loadError: '成员档案暂时无法加载，请重试。' })
+    } finally {
+      this.restoring = false
     }
   },
 
   async onWechatLogin() {
+    if (this.data.loginLoading) return
     this.setData({ loginLoading: true, loginError: '' })
     const res = await getApp().loginWithWechat()
     this.setData({ loginLoading: false })
@@ -50,53 +55,63 @@ Page({
     this.restore()
   },
 
-  async loadContext() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
+  async loadContext(uid) {
     if (!uid) {
       this.setData({ authState: 'signed-out' })
       return
     }
-    const { data: mine } = await cloud.database
+    const { data: mine, error } = await cloud.database
       .from('members')
       .select('id, household_id, role, nickname')
       .eq('owner_id', uid)
+      .is('left_at', null)
       .limit(1)
+    if (error) throw error
     const me = mine && mine[0]
     if (!me) {
       this.setData({ authState: 'no-household' })
       return
     }
     const isOwner = me.role === 'owner'
-    const targetId = this.data.memberId ? String(this.data.memberId) : String(me.id)
-    const isSelf = targetId === String(me.id)
-    // 权限收敛：本人 + owner 代管（m2-brief #6）
+    const isSelf = !this.requestedMemberId || String(this.requestedMemberId) === String(me.id)
     if (!isSelf && !isOwner) {
       this.setData({ authState: 'forbidden' })
       return
     }
-    let memberName = this.data.memberName
-    if (!memberName) memberName = isSelf ? me.nickname || '我' : '成员'
+    let target = me
+    if (!isSelf) {
+      const { data, error: targetError } = await cloud.database
+        .from('members').select('id, nickname')
+        .eq('household_id', me.household_id).eq('id', this.requestedMemberId).is('left_at', null).limit(1)
+      if (targetError) throw targetError
+      target = data && data[0]
+      if (!target) {
+        this.setData({ authState: 'forbidden' })
+        return
+      }
+    }
     this.setData({
       authState: 'ready',
       householdId: me.household_id,
-      memberId: targetId,
-      memberName: memberName,
+      memberId: target.id,
+      memberName: target.nickname || (isSelf ? '我' : '成员'),
     })
-    await this.loadAllergens(targetId)
+    await this.loadAllergens()
   },
 
-  async loadAllergens(memberId) {
-    const { data, error } = await cloud.database
-      .from('allergies')
-      .select('id, allergen, created_at')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: true })
-    if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
-      return
+  async loadAllergens() {
+    this.setData({ loadState: 'loading', loadError: '' })
+    try {
+      const { data, error } = await cloud.database
+        .from('allergies').select('id, allergen')
+        .eq('household_id', this.data.householdId)
+        .eq('member_id', this.data.memberId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      this.setData({ allergens: data || [], loadState: 'ready' })
+    } catch (e) {
+      this.setData({ loadState: 'error', loadError: '过敏原记录暂时无法加载，请重试。' })
     }
-    this.setData({ allergens: data || [] })
   },
 
   onNewInput(e) {
@@ -104,35 +119,38 @@ Page({
   },
 
   async addAllergen() {
+    if (this.data.saving || this.data.loadState !== 'ready') return
     const v = (this.data.newAllergen || '').trim()
     if (!v) {
       wx.showToast({ title: '请输入过敏原', icon: 'none' })
       return
     }
     const dup = this.data.allergens.some(function (a) {
-      return a.allergen === v
+      return a.allergen.trim() === v
     })
     if (dup) {
       wx.showToast({ title: '该过敏原已登记', icon: 'none' })
       return
     }
-    if (this.data.saving) return
     this.setData({ saving: true })
-    const res = await allergiesAccess.create({
-      member_id: this.data.memberId,
-      household_id: this.data.householdId,
-      allergen: v,
-    })
-    this.setData({ saving: false })
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '保存失败', icon: 'none' })
-      return
+    try {
+      const res = await allergiesAccess.create({
+        member_id: this.data.memberId,
+        household_id: this.data.householdId,
+        allergen: v,
+      })
+      if (res.error || !res.data) throw res.error || new Error('Missing saved allergen')
+      this.setData({ newAllergen: '' })
+    } catch (e) {
+      wx.showToast({ title: '保存结果暂未确认，正在刷新记录', icon: 'none' })
+    } finally {
+      await this.loadAllergens()
+      this.setData({ saving: false })
     }
-    this.setData({ newAllergen: '' })
-    this.loadAllergens(this.data.memberId)
   },
 
   removeAllergen(e) {
+    if (this.data.saving || this.data.loadState !== 'ready') return
     const id = e.currentTarget.dataset.id
     const allergen = e.currentTarget.dataset.allergen || ''
     const that = this
@@ -147,13 +165,18 @@ Page({
   },
 
   async doRemove(id) {
-    if (!id) return
-    const res = await allergiesAccess.remove(id)
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
-      return
+    if (!id || this.data.saving || this.data.loadState !== 'ready' ||
+        !this.data.allergens.some((a) => a.id === id)) return
+    this.setData({ saving: true })
+    try {
+      const res = await allergiesAccess.remove(id)
+      if (res.error || !res.data) throw res.error || new Error('Missing deleted allergen')
+      wx.showToast({ title: '已移除', icon: 'success' })
+    } catch (e) {
+      wx.showToast({ title: '移除结果暂未确认，正在刷新记录', icon: 'none' })
+    } finally {
+      await this.loadAllergens()
+      this.setData({ saving: false })
     }
-    wx.showToast({ title: '已删除', icon: 'success' })
-    this.loadAllergens(this.data.memberId)
   },
 })

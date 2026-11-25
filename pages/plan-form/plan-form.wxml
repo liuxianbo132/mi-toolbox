@@ -1,84 +1,95 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+  <view wx:if="{{authState === 'checking'}}" class="center">正在加载用药计划…</view>
 
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
+  <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+  </view>
 
-<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+  <view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在首页创建或加入家庭</view>
 
-<view wx:else>
-  <view class="card">
-    <view class="card-title">{{planId ? '编辑用药计划' : '新建用药计划'}}</view>
+  <view wx:elif="{{authState === 'error' || authState === 'unavailable'}}" class="card">
+    <view class="card-title">{{loadError}}</view>
+    <button wx:if="{{authState === 'error'}}" class="btn-ghost" bindtap="restore">重新加载</button>
+  </view>
 
-    <view class="form-row">
-      <text class="f-label">药品</text>
-      <view wx:if="{{lockedItemId}}" class="ipt locked-value">{{lockedItemName || '该药品'}}</view>
-      <picker wx:else class="ipt-flex" mode="selector" range="{{medicineNames}}" value="{{medicineIndex}}" bindchange="onMedicineChange">
-        <view class="ipt">{{medicineNames[medicineIndex] || '选择药品'}}</view>
-      </picker>
-    </view>
-
-    <view wx:if="{{conflictState === 'error'}}" class="conflict-banner conflict-warn">
-      <text>{{memberNames[memberIndex] || '该成员'}} 的过敏档案暂时无法加载，冲突状态未知，请保存前先到「过敏档案」核对。</text>
-    </view>
-    <view wx:elif="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
-      <text>{{memberNames[memberIndex] || '该成员'}} 的过敏档案命中：{{hitsSummary}}</text>
-    </view>
-
-    <view class="form-row">
-      <text class="f-label">服药人</text>
-      <picker class="ipt-flex" mode="selector" range="{{memberNames}}" value="{{memberIndex}}" bindchange="onMemberChange">
-        <view class="ipt">{{memberNames[memberIndex] || '选择成员'}}</view>
-      </picker>
-    </view>
-
-    <view class="form-row">
-      <text class="f-label">频次</text>
-      <picker class="ipt-flex" mode="selector" range="{{freqOptions}}" value="{{freqIndex}}" bindchange="onFreqChange">
-        <view class="ipt">{{freqOptions[freqIndex]}}</view>
-      </picker>
-    </view>
-
-    <view class="form-block">
-      <text class="f-label block-label">服药时间点</text>
-      <view wx:for="{{timeList}}" wx:for-item="t" wx:key="*this" class="time-row">
-        <picker class="ipt-flex" mode="time" value="{{t}}" data-index="{{index}}" bindchange="onTimeChange">
-          <view class="ipt">{{t}}</view>
+  <view wx:else class="plan-form">
+    <view class="plan-form-title">{{planId ? '编辑用药计划' : '新建用药计划'}}</view>
+    <view class="card plan-form-group">
+      <view class="card-title">药品与服药人</view>
+      <view class="form-row">
+        <text class="f-label">药品</text>
+        <view wx:if="{{planId || lockedItemId}}" class="plan-locked">{{medicineNames[medicineIndex]}}</view>
+        <picker wx:else class="plan-picker" mode="selector" range="{{medicineChoices}}" value="{{medicineIndex + 1}}" disabled="{{saving || saveUnconfirmed || !medicineNames.length}}" bindchange="onMedicineChange" aria-label="选择药品">
+          <view class="ipt">{{medicineNames[medicineIndex] || (medicineNames.length ? '选择药品' : '库存中暂无药品')}}</view>
         </picker>
-        <button wx:if="{{timeList.length > 1}}" size="mini" class="btn-ghost" data-index="{{index}}" bindtap="removeTime">删</button>
       </view>
-      <button size="mini" class="btn-ghost add-time" bindtap="addTime">＋ 添加时间点</button>
+      <view class="form-row">
+        <text class="f-label">服药人</text>
+        <view wx:if="{{planId}}" class="plan-locked">{{memberNames[memberIndex]}}</view>
+        <picker wx:else class="plan-picker" mode="selector" range="{{memberChoices}}" value="{{memberIndex + 1}}" disabled="{{saving || saveUnconfirmed || !memberNames.length}}" bindchange="onMemberChange" aria-label="选择服药人">
+          <view class="ipt">{{memberNames[memberIndex] || '选择成员'}}</view>
+        </picker>
+      </view>
+      <view wx:if="{{conflictState === 'loading'}}" class="form-hint">正在核对{{memberNames[memberIndex]}}的过敏关联…</view>
+      <view wx:elif="{{conflictState === 'error'}}" class="conflict-banner conflict-warn">
+        <text>已登记的过敏关联暂时无法核对。</text>
+        <button class="btn-ghost plan-form-control" disabled="{{saving || saveUnconfirmed}}" bindtap="checkSelection">重新核对</button>
+      </view>
+      <view wx:elif="{{hitsWorst}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
+        <text>{{memberNames[memberIndex]}}的档案匹配已登记关联。{{hitsSummary}}{{hitsWorst === 'forbidden' ? '。无法保存计划。' : ''}}</text>
+      </view>
+      <view class="form-hint">提示来自登记的文字关联，具体用药请遵医嘱。</view>
     </view>
 
-    <view class="form-row">
-      <text class="f-label">开始日期</text>
-      <picker class="ipt-flex" mode="date" value="{{startDate}}" bindchange="onStartChange">
-        <view class="ipt">{{startDate || '选择日期'}}</view>
-      </picker>
+    <view class="card plan-form-group">
+      <view class="card-title">提醒时间</view>
+      <view class="form-row">
+        <text class="f-label">频次</text>
+        <picker class="plan-picker" mode="selector" range="{{freqOptions}}" value="{{freqIndex}}" disabled="{{saving || saveUnconfirmed}}" bindchange="onFreqChange" aria-label="选择重复频次">
+          <view class="ipt">{{freqOptions[freqIndex]}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="f-label">开始日期</text>
+        <picker class="plan-picker" mode="date" value="{{startDate}}" disabled="{{saving || saveUnconfirmed}}" bindchange="onStartChange" aria-label="选择开始日期">
+          <view class="ipt">{{startDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="f-label">结束日期</text>
+        <picker class="plan-picker" mode="date" value="{{endDate || startDate}}" start="{{startDate}}" disabled="{{saving || saveUnconfirmed}}" bindchange="onEndChange" aria-label="选择结束日期">
+          <view class="ipt">{{endDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-hint">起止日期均计入疗程，最多 180 天。</view>
+
+      <view class="time-section">
+        <view class="time-heading">服药时间点</view>
+        <view wx:for="{{timeList}}" wx:for-item="t" class="time-row">
+          <picker class="plan-picker" mode="time" value="{{t || '08:00'}}" disabled="{{saving || saveUnconfirmed}}" data-index="{{index}}" bindchange="onTimeChange" aria-label="设置第 {{index + 1}} 个时间点">
+            <view class="ipt">{{t || '选择时间'}}</view>
+          </picker>
+          <button wx:if="{{timeList.length > 1}}" class="btn-ghost plan-form-control" disabled="{{saving || saveUnconfirmed}}" data-index="{{index}}" bindtap="removeTime" aria-label="移除第 {{index + 1}} 个时间点">移除</button>
+        </view>
+        <button wx:if="{{timeList.length < 8}}" class="btn-ghost plan-form-control" disabled="{{saving || saveUnconfirmed}}" bindtap="addTime">添加时间点</button>
+      </view>
     </view>
 
-    <view class="form-row">
-      <text class="f-label">结束日期</text>
-      <picker class="ipt-flex" mode="date" value="{{endDate}}" bindchange="onEndChange">
-        <view class="ipt">{{endDate || '选择日期'}}</view>
-      </picker>
+    <view class="card plan-form-group">
+      <view class="card-title">打卡记录</view>
+      <view class="form-row">
+        <text class="f-label">漏服判定</text>
+        <picker class="plan-picker" mode="selector" range="{{thresholdOptions}}" value="{{thresholdIndex}}" disabled="{{saving || saveUnconfirmed}}" bindchange="onThresholdChange" aria-label="设置超时标记分钟数">
+          <view class="ipt">{{thresholdOptions[thresholdIndex]}} 分钟</view>
+        </picker>
+      </view>
+      <view class="form-hint">超过所设时间仍未确认，记录将自动标记为漏服。</view>
     </view>
 
-    <view class="form-hint">疗程最长 180 天；隔天服 = 开始日起每 2 个日历日服药一次</view>
-
-    <view class="form-row">
-      <text class="f-label">漏服判定</text>
-      <picker class="ipt-flex" mode="selector" range="{{thresholdOptions}}" value="{{thresholdIndex}}" bindchange="onThresholdChange">
-        <view class="ipt">{{thresholdOptions[thresholdIndex]}} 分钟</view>
-      </picker>
+    <view class="plan-save-area">
+      <view wx:if="{{saveError}}" class="plan-save-error" role="alert">{{saveError}}</view>
+      <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving || conflictState === 'loading' || conflictState === 'error' || hitsWorst === 'forbidden'}}" bindtap="onSave">{{saveUnconfirmed ? '重试本次保存' : '保存计划'}}</button>
     </view>
-    <view class="form-hint">超过该时长未确认，自动标记为漏服</view>
   </view>
-
-  <view class="card">
-    <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="onSave">保存计划</button>
-  </view>
-</view>
 </view>

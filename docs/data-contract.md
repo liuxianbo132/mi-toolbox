@@ -1,4 +1,4 @@
-# 小咪工具箱 · 数据契约 v2.0
+# 小咪工具箱 · 数据契约 v3.0
 
 > 本文件是前端/后端/测试三个窗口的唯一对齐依据。字段命名冲突、结构变更，一律回总控窗口裁决后更新此文件并递增版本号。
 > **v1.1 变更（2026-11-19，后端窗口校对回写）**：「现有表」整节按实际库重写——补录契约漏掉的 `locations`、`records` 两张表与各表缺失字段；`members` 时间字段实为 `joined_at`（v1 写 `created_at` 是笔误）；补录 RLS 实况与辅助函数。「新增表 / 常量 / 推送链路」三节未动。
@@ -10,6 +10,16 @@
 > **v1.7 变更（2026-11-20，总控裁决 R7 · M2 裁决包）**：①#14 cron 周期定档 5 分钟（判定延迟上界 = 阈值 + 5 分钟）；②#5 doses 整疗程一次性生成（保存计划时即时生成），疗程上限 180 天；③#6 计划变更 = 删未发生 pending doses 重建，历史 taken/missed 保留，start_date 早于今天不补历史；④#9 alternate_day = start_date + 2n 日历日，非服药日不生成；⑤#10 miss_threshold_minutes 前端限 10~120（步进 5）默认 30，DB 无 CHECK。
 > **v1.8 变更（2026-11-21，V2 方案定稿）**：新增「V2 约定」节——records.action 四类枚举与静默失败语义、locations 使用口径与删除置空、barcode 扫码匹配规则、库存按品类分组与位置角标规则。
 > **v2.0 变更（2026-11-23，回收站立项 · 软删除）**：`items` / `batches` 新增 `is_deleted boolean NOT NULL DEFAULT false` 与 `deleted_at timestamptz`（`sql/06-soft-delete.sql`）。删除操作一律软删（`is_deleted=true` + `deleted_at=now`）；**所有用户可见读取必须 `.eq('is_deleted', false)`**；回收站页（`pages/trash`）可恢复（仅写 `is_deleted=false`）或彻底删除（物理 DELETE，二次确认）。例外：`records` 与 `locations` 不参与软删；历史名称映射类查询（依从性页、首页今日用药、用药页的 items 名映射）**不过滤**，保证已删药品的历史显示；数据导出包含已删数据（备份完整性）。`ITEM_FIELDS` / `BATCH_FIELDS` 白名单包含 `is_deleted` / `deleted_at`。
+
+## V3.0 写入与状态契约
+
+以下约定适用于完成 `sql/08` 至 `sql/11` 的环境。下方历史段落中的退家物理删除、直接用药写入和客户端回收站级联由本节取代。 [工程交接](briefs/v3-engineering.md)
+
+- `members.left_at` 记录退出和移除时间。仅有效成员具有家庭访问权限。历史显示仍可读取同一家庭已归档的成员名，当前成员选择器过滤 `left_at IS NULL`。原成员通过邀请码回到同一家庭时复用成员标识。
+- `save_med_plan_atomic` 同事务保存计划与场次。新请求带 UUID，网络结果不明时使用原请求编号和内容重试。编辑用 `medication_plans.updated_at` 检查版本，药品和服药人固定，重排只作用于未来待确认记录。
+- `transition_dose` 和 `cancel_plan_atomic` 是服药确认、更正和取消的写入入口。确认时核对服药人的登记关联。档案匹配含义为登记文本命中。漏服定时任务按当前计划阈值处理仍待确认的到点场次。
+- `create_stock_atomic` 同事务创建物品、首批库存和入库流水。单独新增批次继续使用受约束的批次写入。物品、批次的移入与恢复通过 `set_stock_deleted`，回收站确认后的彻底删除通过 `purge_stock_deleted`，独立移入的批次不会随父物品一起恢复。
+- 批次合计使用物品计量单位。同一物品的数量无效、批次单位缺失或与物品单位冲突时显示待核对，补货提醒只统计可比较的数量。
 
 ## 环境身份（v1.6）
 

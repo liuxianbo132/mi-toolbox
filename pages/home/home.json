@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "临期看板",
+  "navigationBarTitleText": "小咪工具箱",
   "usingComponents": {
     "state-view": "/components/state-view/state-view"
   }

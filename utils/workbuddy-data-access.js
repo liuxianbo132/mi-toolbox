@@ -114,7 +114,7 @@ function createTableAccess(cloud, options) {
             });
         },
 
-        update(id, patch) {
+        update(id, patch, expected) {
             if (invalidId(id)) {
                 return Promise.resolve({ data: null, error: INVALID_ID_ERROR });
             }
@@ -123,13 +123,19 @@ function createTableAccess(cloud, options) {
                 if (!hasWritableFields(row)) {
                     return { data: null, error: INVALID_PAYLOAD_ERROR };
                 }
-                const result = await from()
-                    .update(row)
-                    .eq('id', id)
-                    .select(selectedColumns);
+                const filters = expected === undefined ? [] : Object.entries(expected || {});
+                if (expected !== undefined && (!filters.length || filters.some(([field, value]) =>
+                    !columns.includes(field) || value === undefined))) {
+                    return { data: null, error: INVALID_PAYLOAD_ERROR };
+                }
+                let query = from().update(row).eq('id', id);
+                for (const [field, value] of filters) {
+                    query = value === null ? query.is(field, null) : query.eq(field, value);
+                }
+                const result = await query.select(selectedColumns);
                 const rows = asRows(result && result.data);
                 if (rows.length === 0) {
-                    return { data: null, error: NOT_FOUND_OR_FORBIDDEN_ERROR };
+                    return { data: null, error: (result && result.error) || NOT_FOUND_OR_FORBIDDEN_ERROR };
                 }
                 return {
                     data: fromRow(rows[0]),

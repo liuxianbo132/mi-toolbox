@@ -1,41 +1,67 @@
-/* 用药计划表单；公共表单类已收编至 app.wxss */
+.plan-form { padding: var(--space-2) var(--space-4) 0; }
+.plan-form-title {
+  margin: 0 0 var(--space-2) var(--space-1);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.plan-form-group { margin: 0 0 var(--space-3); padding: var(--space-3); }
 
-.ipt-flex {
+.plan-picker { flex: 1; min-width: 0; }
+.plan-picker .ipt { height: auto; overflow-wrap: anywhere; }
+.plan-locked {
   flex: 1;
-}
-
-.locked-value {
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
   color: var(--color-text-2);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-
-.form-block {
-  margin-bottom: var(--space-3);
+.plan-form .form-row { margin: var(--space-2) 0 0; }
+.plan-form .f-label { width: 124rpx; }
+.plan-form .conflict-banner { flex-wrap: wrap; margin: var(--space-2) 0 0; }
+.form-hint {
+  margin-top: var(--space-2);
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.55;
 }
-
-.block-label {
-  display: block;
-  width: auto;
-  margin-bottom: var(--space-1);
+.time-section {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1rpx solid var(--color-border);
 }
-
+.time-heading { font-weight: 600; line-height: 1.45; }
 .time-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.plan-form-control {
+  margin: var(--space-1) 0 0;
+  padding: 0 var(--space-2);
+  min-height: 88rpx;
+  font-size: var(--font-sm);
+}
+.time-row .plan-form-control { margin-top: 0; }
+
+.plan-save-area {
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-2) 0 calc(var(--space-2) + env(safe-area-inset-bottom));
+  background: var(--color-bg);
+}
+.plan-save-error {
   margin-bottom: var(--space-2);
+  color: var(--color-red);
+  font-size: var(--font-sm);
+  line-height: 1.5;
 }
+.save-btn { width: 100%; }
 
-.add-time {
-  margin-left: 110rpx;
-}
-
-.form-hint {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  line-height: 1.6;
-  margin: 0 0 var(--space-2) 110rpx;
-}
-
-.save-btn {
-  width: 100%;
-}
+.large-text .plan-form-title { font-size: 52rpx; }
+.large-text .plan-form .form-row { flex-wrap: wrap; }
+.large-text .plan-form .f-label { width: 100%; }
+.large-text .plan-locked { padding-left: 0; }
+.large-text .plan-save-error { font-size: 28rpx; }

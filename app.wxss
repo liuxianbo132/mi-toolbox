@@ -5,7 +5,7 @@
    - 背景 systemGroupedBackground #F2F2F7；文字使用两级中性灰
    - 语义三色映射固定（不得翻转，测试断言依赖）：
      red=过期·危险 / amber=临期·注意 / green=安全·在库
-   - 圆角 10/20/24rpx；触控目标 88rpx（44px）
+   - 圆角 10/20/28rpx；触控目标 88rpx
    注：WXSS 不支持 :focus/:active 伪类，按压态由 hover-class 承载。
    ============================================================ */
 
@@ -32,7 +32,8 @@ page {
   /* 圆角 · Apple 体系 */
   --radius-sm: 10rpx;
   --radius-md: 20rpx;
-  --radius-lg: 24rpx;
+  --radius-lg: 28rpx;
+  --touch-target: 88rpx;
   /* 间距体系（4pt 网格） */
   --space-1: 8rpx;
   --space-2: 16rpx;
@@ -59,7 +60,7 @@ page {
   background: var(--color-card);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  margin: var(--space-2) var(--space-3);
+  margin: var(--space-2) var(--space-4);
   box-shadow: var(--shadow-card);
 }
 
@@ -77,8 +78,8 @@ input, picker { box-sizing: border-box; }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 88rpx;
-  line-height: 1;
+  min-height: var(--touch-target);
+  line-height: 1.25;
   padding: 0 var(--space-4);
   font-size: var(--font-lg);
   font-weight: 600;
@@ -91,8 +92,8 @@ button[size="mini"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 88rpx;
-  line-height: 1;
+  min-height: var(--touch-target);
+  line-height: 1.25;
   padding: 0 20rpx;
   font-size: var(--font-sm);
   font-weight: 500;

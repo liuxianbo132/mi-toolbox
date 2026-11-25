@@ -1,50 +1,43 @@
 const { cloud } = require('../../utils/cloud')
-const { plansAccess, dosesAccess } = require('../../utils/data-access')
-const { matchAllergies } = require('../../utils/allergy')
+const { indexAllergyMatches } = require('../../utils/allergy')
+const { toDateOnly } = require('../../utils/date')
+const { itemIllustration } = require('../../utils/constants')
 
 const FREQ_LABEL = { daily: '每天', alternate_day: '隔天' }
 const PLAN_STATUS_LABEL = { active: '进行中', finished: '已结束', cancelled: '已取消' }
-const DOSE_STATUS_LABEL = { pending: '待确认', taken: '已服药', missed: '漏服' }
-
-function conflictLabelOf(kind) {
-  if (kind === 'forbidden') return '禁用'
-  if (kind === 'caution') return '慎用'
-  return ''
-}
-
-function pad2(n) {
-  return String(n).padStart(2, '0')
+const DOSE_STATUS_LABEL = { pending: '待确认', taken: '已确认', missed: '标记漏服' }
+const RPC_ERRORS = {
+  forbidden_allergy: '服药人的档案匹配禁用关联，打卡未记录',
+  invalid_transition: '记录状态已变化，请查看最新记录',
+  schedule_changed: '计划已变化，请查看最新记录',
+  not_found: '记录不存在或已移除',
+  forbidden_household: '无权操作该记录',
+  not_signed_in: '登录状态已失效，请重新登录',
 }
 
 function formatHM(iso) {
   const d = new Date(iso)
-  return pad2(d.getHours()) + ':' + pad2(d.getMinutes())
-}
-
-function dayRange(now) {
-  const d = now || new Date()
-  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const end = new Date(start.getTime() + 86400000)
-  return { start: start.toISOString(), end: end.toISOString() }
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
 }
 
 Page({
   data: {
     largeText: false,
-    authState: 'checking', // checking | signed-out | no-household | ready
+    authState: 'checking',
     loginLoading: false,
     loginError: '',
     householdId: null,
     todayText: '',
     timeline: [],
-    plans: [],
-    loading: true,
-    loadState: 'loading', // loading | ready | error
+    activePlans: [],
+    historyPlans: [],
+    loadState: 'loading',
     loadError: '',
-    allergyState: 'loading', // loading | ready | error
-    allergyError: '',
-    doseBusy: false,
+    allergyState: 'loading',
+    doseBusyId: null,
     planBusy: false,
+    showHistory: false,
+    progress: { taken: 0, pending: 0, missed: 0, percent: 0 },
   },
 
   onShow() {
@@ -53,33 +46,49 @@ Page({
   },
 
   async restore() {
-    this.setData({ authState: 'checking', loadError: '' })
+    const requestId = this.loadId = (this.loadId || 0) + 1
+    this.setData({ authState: 'checking', householdId: null, loadError: '' })
     try {
       const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
+      if (requestId !== this.loadId) return
+      if (error) throw error
+      const uid = session && session.user && session.user.id
+      if (!uid) {
         this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadHousehold()
+      const { data: mine, error: householdError } = await cloud.database
+        .from('members')
+        .select('household_id')
+        .eq('owner_id', uid)
+        .is('left_at', null)
+        .limit(1)
+      if (requestId !== this.loadId) return
+      if (householdError) throw householdError
+      const row = mine && mine[0]
+      if (!row) {
+        this.setData({ authState: 'no-household' })
+        return
+      }
+      this.setData({ authState: 'ready', householdId: row.household_id })
+      await this.loadAll(row.household_id)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      if (requestId !== this.loadId) return
+      this.setData({ authState: 'error', loadError: '家庭信息暂时无法加载，请重试' })
     }
   },
 
-  retryLoad() {
+  retryload() {
     if (this.data.householdId) this.loadAll(this.data.householdId)
     else this.restore()
   },
 
-  retryload() { this.retryLoad() },
-
-  goHome() {
+  gohome() {
     wx.switchTab({ url: '/pages/home/home' })
   },
 
-  gohome() { this.goHome() },
-
   async onWechatLogin() {
+    if (this.data.loginLoading) return
     this.setData({ loginLoading: true, loginError: '' })
     const res = await getApp().loginWithWechat()
     this.setData({ loginLoading: false })
@@ -90,293 +99,161 @@ Page({
     this.restore()
   },
 
-  async loadHousehold() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
-    if (!uid) {
-      this.setData({ authState: 'signed-out' })
-      return
-    }
-    const { data: mine, error: householdError } = await cloud.database
-      .from('members')
-      .select('household_id')
-      .eq('owner_id', uid)
-      .limit(1)
-    if (householdError) {
-      this.setData({
-        authState: 'error',
-        loadState: 'error',
-        loadError: (householdError && householdError.message) || '家庭信息加载失败，请重试',
-      })
-      return
-    }
-    const row = mine && mine[0]
-    if (!row) {
-      this.setData({ authState: 'no-household', loading: false })
-      return
-    }
-    this.setData({ authState: 'ready', householdId: row.household_id })
-    await this.loadAll(row.household_id)
-  },
-
   async loadAll(hid) {
-    this.setData({ loading: true, loadState: 'loading', allergyState: 'loading', loadError: '', allergyError: '' })
+    const requestId = this.loadId = (this.loadId || 0) + 1
     const now = new Date()
-    const range = dayRange(now)
-    this.setData({ todayText: now.getMonth() + 1 + '月' + now.getDate() + '日' })
-
-    const memberRes = await cloud.database
-      .from('members')
-      .select('id, owner_id, nickname, role')
-      .eq('household_id', hid)
-    // 名称映射不过滤 is_deleted（契约 v2.0）：已删药品的历史计划与剂量仍需显示原名
-    const itemRes = await cloud.database
-      .from('items')
-      .select('id, name, category')
-      .eq('household_id', hid)
-    if (memberRes.error || itemRes.error) {
-      this.setData({ loading: false, loadState: 'error', loadError: '用药信息暂时无法加载，请重试' })
-      return
-    }
-    const members = memberRes.data || []
-    const items = itemRes.data || []
-    const memberNameMap = {}
-    members.forEach(function (m) {
-      memberNameMap[m.id] = m.nickname || '成员'
-    })
-    const itemNameMap = {}
-    items.forEach(function (i) {
-      itemNameMap[i.id] = i.name
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()
+    this.setData({
+      loadState: 'loading',
+      loadError: '',
+      allergyState: 'loading',
+      todayText: now.getMonth() + 1 + '月' + now.getDate() + '日',
     })
 
-    // 冲突标（P0-1 修复）：按计划服药人 member_id 的过敏档案判断，而非登录用户。
-    // 一次查询全家过敏档案 + 全部药品关联，避免逐计划 N+1；
-    // 任一查询失败 → conflictState='error'，所有条目显示「冲突未知」，不得显示为安全。
-    const hitsByItemMember = {}
-    let conflictState = 'ready'
-    const alRes = await cloud.database
-      .from('allergies')
-      .select('member_id, allergen')
-      .eq('household_id', hid)
-    const linkRes = await cloud.database
-      .from('drug_allergy_links')
-      .select('item_id, allergen, kind')
-      .eq('household_id', hid)
-    if (alRes.error || linkRes.error) {
-      conflictState = 'error'
-      this.setData({ allergyState: 'error', allergyError: '过敏档案或药品关联加载失败，冲突状态未知，请重试' })
-    } else {
-      const allergensByMember = {}
-      ;(alRes.data || []).forEach(function (a) {
-        if (!allergensByMember[a.member_id]) allergensByMember[a.member_id] = []
-        allergensByMember[a.member_id].push(a.allergen)
+    try {
+      const [memberRes, itemRes, doseRes, planRes, allergyRes, linkRes] = await Promise.all([
+        cloud.database.from('members').select('id, nickname, left_at').eq('household_id', hid),
+        // 软删除药品仍用于历史记录的名称映射。
+        cloud.database.from('items').select('id, name, is_deleted').eq('household_id', hid),
+        cloud.database.from('medication_doses')
+          .select('id, plan_id, scheduled_at, status')
+          .eq('household_id', hid)
+          .gte('scheduled_at', start)
+          .lt('scheduled_at', end)
+          .order('scheduled_at', { ascending: true }),
+        cloud.database.from('medication_plans')
+          .select('id, item_id, member_id, times, freq, start_date, end_date, status')
+          .eq('household_id', hid)
+          .order('created_at', { ascending: false }),
+        cloud.database.from('allergies').select('member_id, allergen').eq('household_id', hid),
+        cloud.database.from('drug_allergy_links').select('item_id, allergen, kind').eq('household_id', hid),
+      ])
+      if (requestId !== this.loadId) return
+      if (memberRes.error || itemRes.error || doseRes.error || planRes.error) {
+        this.setData({ loadState: 'error', loadError: '用药安排暂时无法加载，请重试' })
+        return
+      }
+
+      const members = new Map((memberRes.data || []).map((m) => [String(m.id), m]))
+      const items = new Map((itemRes.data || []).map((i) => [String(i.id), i]))
+      const plans = planRes.data || []
+      const planMap = new Map(plans.map((p) => [String(p.id), p]))
+      const allergyState = allergyRes.error || linkRes.error ? 'error' : 'ready'
+      const matches = indexAllergyMatches(allergyRes.data || [], linkRes.data || [])
+
+      function describePlan(plan) {
+        const p = plan || {}
+        const item = items.get(String(p.item_id))
+        const member = members.get(String(p.member_id))
+        const kind = allergyState === 'ready' && item && member
+          ? matches.get(p.item_id + '|' + p.member_id) || ''
+          : 'unknown'
+        return {
+          itemName: item ? item.name : '未知药品',
+          itemIllu: itemIllustration(item && item.name, 'medicine'),
+          memberName: member ? member.nickname || '成员' : '未知成员',
+          itemUnavailable: !!(item && item.is_deleted),
+          memberArchived: !!(member && member.left_at),
+          conflictKind: kind,
+          conflictLabel: { forbidden: '档案匹配禁用关联', caution: '档案匹配慎用关联', unknown: '关联未核对' }[kind] || '',
+        }
+      }
+
+      const progress = { taken: 0, pending: 0, missed: 0, percent: 0 }
+      const timeline = (doseRes.data || []).map((d) => {
+        const plan = planMap.get(String(d.plan_id))
+        const info = describePlan(plan)
+        if (d.status === 'taken') progress.taken++
+        if (d.status === 'pending') progress.pending++
+        if (d.status === 'missed') progress.missed++
+        return {
+          ...info,
+          id: d.id,
+          time: formatHM(d.scheduled_at),
+          status: d.status,
+          statusLabel: DOSE_STATUS_LABEL[d.status] || '状态未知',
+          statusClass: d.status === 'taken' ? 'tag-green' : d.status === 'missed' ? 'tag-red' : 'dose-status',
+          cannotConfirm: info.itemUnavailable ? '药品已移入回收站' : info.memberArchived ? '服药人已退出家庭' : '',
+          canConfirm: d.status === 'pending' && !info.itemUnavailable && !info.memberArchived &&
+            info.conflictKind !== 'forbidden' && info.conflictKind !== 'unknown',
+          canCorrect: d.status === 'taken',
+        }
       })
-      const links = linkRes.data || []
-      members.forEach(function (m) {
-        const allergens = allergensByMember[m.id]
-        if (!allergens || !allergens.length) return
-        links.forEach(function (l) {
-          const hit = matchAllergies(allergens, [l])
-          if (!hit.length) return
-          const key = l.item_id + '|' + m.id
-          const kind = hit[0].kind
-          if (!hitsByItemMember[key] || kind === 'forbidden') hitsByItemMember[key] = kind
-        })
+      if (timeline.length) progress.percent = Math.round(progress.taken * 100 / timeline.length)
+
+      const activePlans = []
+      const historyPlans = []
+      const today = toDateOnly(now)
+      plans.forEach((p) => {
+        const info = describePlan(p)
+        const expired = p.status === 'active' && p.end_date && p.end_date < today
+        const view = {
+          ...info,
+          id: p.id,
+          timesText: (p.times || []).join(' / '),
+          freqLabel: FREQ_LABEL[p.freq] || '频次未知',
+          courseText: p.start_date + ' 至 ' + (p.end_date || '未设结束日期'),
+          statusLabel: expired ? '疗程已到期' : PLAN_STATUS_LABEL[p.status] || '状态未知',
+          canManage: p.status === 'active',
+        }
+        if (view.canManage && !expired) activePlans.push(view)
+        else historyPlans.push(view)
       })
-      this.setData({ allergyState: 'ready' })
+
+      this.setData({ loadState: 'ready', allergyState, timeline, activePlans, historyPlans, progress })
+    } catch (e) {
+      if (requestId !== this.loadId) return
+      this.setData({ loadState: 'error', loadError: '用药安排暂时无法加载，请重试' })
     }
-
-    // 按计划（item_id × member_id）取冲突：forbidden 优先；unknown 仅在档案加载失败时出现
-    function conflictOf(p) {
-      if (conflictState === 'error') {
-        return { kind: 'unknown', label: '冲突未知', forbid: false, unknown: true }
-      }
-      const kind = hitsByItemMember[p.item_id + '|' + p.member_id]
-      if (!kind) return { kind: '', label: '', forbid: false, unknown: false }
-      const name = memberNameMap[p.member_id] || '该成员'
-      return {
-        kind: kind,
-        label: name + ' ' + conflictLabelOf(kind),
-        forbid: kind === 'forbidden',
-        unknown: false,
-      }
-    }
-
-    const doseRes = await cloud.database
-      .from('medication_doses')
-      .select('id, plan_id, scheduled_at, confirmed_at, status')
-      .eq('household_id', hid)
-      .gte('scheduled_at', range.start)
-      .lt('scheduled_at', range.end)
-      .order('scheduled_at', { ascending: true })
-
-    const planRes = await cloud.database
-      .from('medication_plans')
-      .select('id, item_id, member_id, times, freq, start_date, end_date, miss_threshold_minutes, status')
-      .eq('household_id', hid)
-      .order('created_at', { ascending: false })
-
-    if (doseRes.error || planRes.error) {
-      this.setData({ loading: false, loadState: 'error', loadError: '用药安排暂时无法加载，请重试' })
-      return
-    }
-
-    const planMap = {}
-    ;(planRes.data || []).forEach(function (p) {
-      planMap[p.id] = p
-    })
-
-    const timeline = (doseRes.data || []).map(function (d) {
-      const p = planMap[d.plan_id] || {}
-      const c = conflictOf(p)
-      return {
-        id: d.id,
-        time: formatHM(d.scheduled_at),
-        itemName: itemNameMap[p.item_id] || '未知药品',
-        memberName: memberNameMap[p.member_id] || '',
-        status: d.status,
-        statusLabel: DOSE_STATUS_LABEL[d.status] || d.status,
-        statusClass: d.status === 'taken' ? 'tag-green' : d.status === 'missed' ? 'tag-red' : 'tag-amber',
-        canConfirm: d.status === 'pending' && !c.forbid,
-        canCorrect: d.status === 'taken',
-        conflictKind: c.kind,
-        conflictLabel: c.label,
-        conflictForbid: c.forbid,
-        conflictUnknown: c.unknown,
-      }
-    })
-
-    const plans = (planRes.data || []).map(function (p) {
-      const c = conflictOf(p)
-      return {
-        id: p.id,
-        itemName: itemNameMap[p.item_id] || '未知药品',
-        memberName: memberNameMap[p.member_id] || '',
-        timesText: (p.times || []).join(' / '),
-        freqLabel: FREQ_LABEL[p.freq] || p.freq,
-        courseText: p.start_date + ' ~ ' + p.end_date,
-        statusLabel: PLAN_STATUS_LABEL[p.status] || p.status,
-        status: p.status,
-        canEdit: p.status === 'active',
-        conflictKind: c.kind,
-        conflictLabel: c.label,
-        conflictForbid: c.forbid,
-        conflictUnknown: c.unknown,
-      }
-    })
-
-    this.setData({ loading: false, loadState: 'ready', timeline: timeline, plans: plans })
   },
 
-  findDoseById(id) {
-    const list = this.data.timeline || []
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id) return list[i]
-    }
-    return null
-  },
-
-  // 打卡：pending → taken（contract v1.7：confirmed_at=now）
-  // P0-2：禁用药物（按服药人档案命中 forbidden）在客户端二次拦截，不依赖 UI 隐藏按钮
-  async confirmDose(e) {
+  confirmDose(e) {
     const id = e.currentTarget.dataset.id
-    if (!id || this.data.doseBusy) return
-    const dose = this.findDoseById(id)
-    if (dose && dose.conflictForbid) {
-      const that = this
-      wx.showModal({
-        title: '无法确认已服',
-        content: (dose.memberName || '该成员') + ' 的过敏档案命中「禁用」，请与医生确认后调整用药计划。',
-        showCancel: false,
-        confirmColor: '#A32D2D',
-        success() {
-          that.loadAll(that.data.householdId)
-        },
-      })
-      return
-    }
-    this.setData({ doseBusy: true })
-    // P0-2：优先走服务端原子 RPC（迁移 07 部署后生效，含服药人过敏禁用校验）；未部署回退普通更新
-    const rpc = await cloud.database.rpc('transition_dose', {
-      p_dose_id: id,
-      p_target_status: 'taken',
-    })
-    let ok = false
-    let errText = ''
-    if (!rpc.error && rpc.data === 'ok') {
-      ok = true
-    } else if (rpc.error) {
-      // RPC 未部署或调用失败 → 回退客户端直写（迁移前兼容）
-      const res = await dosesAccess.update(id, {
-        status: 'taken',
-        confirmed_at: new Date().toISOString(),
-      })
-      ok = !res.error && !!res.data
-      if (!ok) errText = (res.error && res.error.message) || ''
-    } else {
-      errText = {
-        forbidden_allergy: '服药人过敏档案命中禁用，已拒绝打卡',
-        invalid_transition: '该记录状态已变化，请刷新后重试',
-        not_found: '记录不存在',
-        forbidden_household: '无权操作该记录',
-        not_signed_in: '登录状态已失效，请重新登录',
-      }[rpc.data] || '操作失败'
-    }
-    this.setData({ doseBusy: false })
-    if (!ok) {
-      wx.showToast({ title: errText || '操作失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已打卡', icon: 'success' })
-    this.loadAll(this.data.householdId)
+    if (this.data.loadState !== 'ready' || this.data.doseBusyId !== null) return
+    const dose = this.data.timeline.find((d) => d.id === id)
+    if (!dose || !dose.canConfirm) return
+    this.transitionDose(id, 'taken')
   },
 
-  // 误打卡更正：taken → missed。保留该条记录（不删除历史行）；优先原子 RPC，失败回退直写
   correctDose(e) {
     const id = e.currentTarget.dataset.id
-    const that = this
+    if (this.data.loadState !== 'ready' || this.data.doseBusyId !== null) return
     wx.showModal({
       title: '更正打卡',
-      content: '将此条记录改为「漏服」。原记录保留，更正不可自动撤销，请确认是误打卡后再操作。',
+      content: '此条记录将标记为漏服。确认这次打卡是误操作后再更正。',
+      confirmText: '确认更正',
       confirmColor: '#A32D2D',
-      success(res) {
-        if (!res.confirm) return
-        that.applyCorrect(id)
+      success: (res) => {
+        if (res.confirm) this.transitionDose(id, 'missed')
       },
     })
   },
 
-  async applyCorrect(id) {
-    if (!id || this.data.doseBusy) return
-    this.setData({ doseBusy: true })
-    // taken→missed 走同一 RPC（迁移 07）；confirmed_at 由服务端置空，前端 SDK 不写 null（会丢弃）
-    const rpc = await cloud.database.rpc('transition_dose', {
-      p_dose_id: id,
-      p_target_status: 'missed',
-    })
-    let ok = false
-    let errText = ''
-    if (!rpc.error && rpc.data === 'ok') {
-      ok = true
-    } else if (rpc.error) {
-      const res = await dosesAccess.update(id, { status: 'missed' })
-      ok = !res.error && !!res.data
-      if (!ok) errText = (res.error && res.error.message) || ''
-    } else {
-      errText = {
-        invalid_transition: '仅已打卡记录可更正',
-        not_found: '记录不存在',
-        forbidden_household: '无权操作该记录',
-        not_signed_in: '登录状态已失效，请重新登录',
-      }[rpc.data] || '更正失败'
+  async transitionDose(id, targetStatus) {
+    const householdId = this.data.householdId
+    if (!householdId || this.data.loadState !== 'ready' || this.data.doseBusyId !== null) return
+    const dose = this.data.timeline.find((d) => d.id === id)
+    if (!dose || !(targetStatus === 'taken' ? dose.canConfirm : dose.canCorrect)) return
+
+    this.setData({ doseBusyId: id })
+    try {
+      const { data, error } = await cloud.database.rpc('transition_dose', {
+        p_dose_id: id,
+        p_target_status: targetStatus,
+      })
+      if (error) throw error
+      if (data === 'ok') {
+        wx.showToast({ title: targetStatus === 'taken' ? '已确认服药' : '已标记漏服', icon: 'success' })
+      } else {
+        wx.showToast({ title: RPC_ERRORS[data] || '暂时无法更新打卡', icon: 'none' })
+      }
+    } catch (e) {
+      wx.showToast({ title: '同步结果未确认，正在刷新记录', icon: 'none' })
+    } finally {
+      if (this.data.householdId === householdId) await this.loadAll(householdId)
+      this.setData({ doseBusyId: null })
     }
-    this.setData({ doseBusy: false })
-    if (!ok) {
-      wx.showToast({ title: errText || '更正失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已更正为漏服', icon: 'none' })
-    this.loadAll(this.data.householdId)
   },
 
   goadherence() {
@@ -391,82 +268,54 @@ Page({
     wx.navigateTo({ url: '/pages/plan-form/plan-form' })
   },
 
-  goEditPlan(e) {
-    const id = e.currentTarget.dataset.id
-    const status = e.currentTarget.dataset.status
-    if (!id) return
-    if (status !== 'active') {
-      wx.showToast({ title: '仅进行中的计划可编辑', icon: 'none' })
-      return
-    }
-    wx.navigateTo({ url: '/pages/plan-form/plan-form?id=' + id })
+  toggleHistory() {
+    this.setData({ showHistory: !this.data.showHistory })
   },
 
-  cancelPlan(e) {
+  openPlanActions(e) {
     const id = e.currentTarget.dataset.id
-    const that = this
+    if (this.data.planBusy || this.data.loadState !== 'ready' || !this.canManagePlan(id)) return
+    wx.showActionSheet({
+      itemList: ['编辑计划', '取消计划'],
+      success: (res) => {
+        if (res.tapIndex === 0) wx.navigateTo({ url: '/pages/plan-form/plan-form?id=' + id })
+        if (res.tapIndex === 1) this.cancelPlan(id)
+      },
+    })
+  },
+
+  canManagePlan(id) {
+    return this.data.activePlans.concat(this.data.historyPlans).some((p) => p.id === id && p.canManage)
+  },
+
+  cancelPlan(id) {
     wx.showModal({
       title: '取消用药计划',
-      content: '取消后将删除未来未发生的提醒，历史记录保留',
+      content: '取消后将停止未来提醒，历史记录保留。',
+      confirmText: '取消计划',
+      cancelText: '返回',
       confirmColor: '#A32D2D',
-      success(res) {
-        if (!res.confirm) return
-        that.doCancelPlan(id)
+      success: (res) => {
+        if (res.confirm) this.doCancelPlan(id)
       },
     })
   },
 
   async doCancelPlan(id) {
-    if (this.data.planBusy) return
+    const householdId = this.data.householdId
+    if (!householdId || this.data.planBusy || this.data.loadState !== 'ready' ||
+        !this.canManagePlan(id)) return
     this.setData({ planBusy: true })
-    // P0-3：优先原子 RPC（迁移 07）——状态翻转与删未来提醒同事务；未部署回退两步流程
-    const rpc = await cloud.database.rpc('cancel_plan_atomic', { p_plan_id: id })
-    if (!rpc.error && rpc.data === 'ok') {
+    try {
+      const { data, error } = await cloud.database.rpc('cancel_plan_atomic', { p_plan_id: id })
+      if (error) throw error
+      if (data === 'ok') wx.showToast({ title: '计划已取消', icon: 'success' })
+      else wx.showToast({ title: RPC_ERRORS[data] || '暂时无法取消计划', icon: 'none' })
+    } catch (e) {
+      wx.showToast({ title: '同步结果未确认，正在刷新计划', icon: 'none' })
+    } finally {
+      if (this.data.householdId === householdId) await this.loadAll(householdId)
       this.setData({ planBusy: false })
-      wx.showToast({ title: '已取消', icon: 'success' })
-      this.loadAll(this.data.householdId)
-      return
     }
-    if (!rpc.error && rpc.data !== 'ok') {
-      this.setData({ planBusy: false })
-      const msg = {
-        not_found: '计划不存在',
-        forbidden_household: '无权操作该计划',
-        not_signed_in: '登录状态已失效，请重新登录',
-      }[rpc.data] || '操作失败'
-      wx.showToast({ title: msg, icon: 'none' })
-      return
-    }
-    // RPC 未部署或调用失败 → 回退旧两步流程（幂等，可安全重试）
-    const upd = await plansAccess.update(id, { status: 'cancelled' })
-    if (upd.error || !upd.data) {
-      this.setData({ planBusy: false })
-      wx.showToast({ title: (upd.error && upd.error.message) || '操作失败', icon: 'none' })
-      return
-    }
-    // 契约 v1.7 #5/#6：取消时删除未来未发生的 pending
-    const cleaned = await this.removeFuturePending(id)
-    this.setData({ planBusy: false })
-    wx.showToast({ title: cleaned ? '已取消' : '计划已取消，未来提醒清理失败', icon: 'none' })
-    this.loadAll(this.data.householdId)
-  },
-
-  async removeFuturePending(planId) {
-    const nowMs = Date.now()
-    const { data, error } = await cloud.database
-      .from('medication_doses')
-      .select('id, scheduled_at, status')
-      .eq('plan_id', planId)
-      .eq('status', 'pending')
-    if (error) return false
-    const future = (data || []).filter(function (d) {
-      return new Date(d.scheduled_at).getTime() > nowMs
-    })
-    let cleaned = true
-    for (let i = 0; i < future.length; i++) {
-      const removed = await dosesAccess.remove(future[i].id)
-      if (removed.error || !removed.data) cleaned = false
-    }
-    return cleaned
   },
 })

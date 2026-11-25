@@ -14,6 +14,10 @@
   height: 96rpx;
   margin: 0 auto;
 }
+.state-illustration {
+  width: 200rpx;
+  height: 200rpx;
+}
 .state-title {
   margin-top: 12rpx;
   font-size: 30rpx;
@@ -40,6 +44,6 @@
   color: #FFFFFF;
   font-size: 28rpx;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.3;
 }
 .state-action::after { border: none; }

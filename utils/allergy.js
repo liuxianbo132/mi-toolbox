@@ -1,23 +1,42 @@
-// 过敏冲突匹配（m2-brief #8）：当前用户 allergies.allergen ∩ 药品 drug_allergy_links.allergen
+// 过敏关联匹配：指定服药人登记的文本与药品显式关联按去除首尾空格后的文本匹配。
 // 返回 [{ allergen, kind, kindLabel }]；同一过敏原命中多条时 forbidden 优先
 const KIND_LABEL = { forbidden: '禁用', caution: '慎用' }
 
 function matchAllergies(myAllergens, links) {
-  const mine = {}
-  ;(myAllergens || []).forEach(function (a) {
-    const k = String(a || '').trim()
-    if (k) mine[k] = true
-  })
-  const hitMap = {}
+  const mine = new Set((myAllergens || []).map(function (a) { return String(a || '').trim() }))
+  const hitMap = new Map()
   ;(links || []).forEach(function (l) {
     const allergen = String((l && l.allergen) || '').trim()
-    if (!allergen || !mine[allergen]) return
+    if (!allergen || !mine.has(allergen)) return
     const kind = l.kind === 'forbidden' ? 'forbidden' : 'caution'
-    if (!hitMap[allergen] || kind === 'forbidden') hitMap[allergen] = kind
+    if (!hitMap.has(allergen) || kind === 'forbidden') hitMap.set(allergen, kind)
   })
-  return Object.keys(hitMap).map(function (allergen) {
-    return { allergen: allergen, kind: hitMap[allergen], kindLabel: KIND_LABEL[hitMap[allergen]] }
+  return Array.from(hitMap, function ([allergen, kind]) {
+    return { allergen: allergen, kind: kind, kindLabel: KIND_LABEL[kind] }
   })
+}
+
+function indexAllergyMatches(allergies, links) {
+  const membersByAllergen = new Map()
+  allergies.forEach(function (a) {
+    const allergen = String(a.allergen || '').trim()
+    if (!allergen) return
+    if (!membersByAllergen.has(allergen)) membersByAllergen.set(allergen, new Set())
+    membersByAllergen.get(allergen).add(a.member_id)
+  })
+
+  const matches = new Map()
+  links.forEach(function (l) {
+    const members = membersByAllergen.get(String(l.allergen || '').trim())
+    if (!members) return
+    members.forEach(function (memberId) {
+      const key = l.item_id + '|' + memberId
+      if (!matches.has(key) || l.kind === 'forbidden') {
+        matches.set(key, l.kind === 'forbidden' ? 'forbidden' : 'caution')
+      }
+    })
+  })
+  return matches
 }
 
 function hasForbidden(hits) {
@@ -35,4 +54,4 @@ function hitsText(hits) {
     .join('、')
 }
 
-module.exports = { matchAllergies, hasForbidden, hitsText, KIND_LABEL }
+module.exports = { matchAllergies, indexAllergyMatches, hasForbidden, hitsText, KIND_LABEL }

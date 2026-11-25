@@ -1,9 +1,14 @@
-/* 回收站页；公共类（card、card-title、center-hint、btn-ghost、btn-danger、tag-red）在 app.wxss */
+.trash-page { margin: var(--space-3) var(--space-4) 48rpx; }
+.trash-heading, .trash-note { margin: 0 0 12rpx; color: var(--color-text-2); font-size: var(--font-sm); line-height: 1.45; }
+.trash-heading { font-weight: 600; }
+.trash-section + .trash-section { margin-top: var(--space-3); }
+.trash-group { background: var(--color-card); border-radius: var(--radius-lg); padding: 0 var(--space-3); }
 
 .trash-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-2);
   padding: var(--space-2) 0;
   border-top: 1rpx solid var(--color-border);
@@ -15,7 +20,7 @@
 
 .trash-main {
   flex: 1;
-  min-width: 0;
+  min-width: 180rpx;
 }
 
 .trash-title {
@@ -41,18 +46,12 @@
 .trash-actions {
   display: flex;
   gap: 8rpx;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
-.trash-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  padding: 40rpx 32rpx;
-  color: var(--color-text-2);
-  font-size: var(--font-md);
-}
-.trash-mascot { width: 136rpx; height: 136rpx; }
+.purge-button { color: var(--color-red); background: transparent; }
+.purge-button::after { border: none; }
+.large-text .trash-actions { width: 100%; }
+.large-text .trash-heading, .large-text .trash-note { font-size: 30rpx; }
 
 /* 大字模式：标题与二级信息跟随放大，触控尺寸沿用全局 mini 规则 */
 .large-text .trash-title {

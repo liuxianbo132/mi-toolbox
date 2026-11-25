@@ -1,44 +1,43 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
-
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
-
-<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
-
-<view wx:else>
-  <view class="card">
-    <view class="card-title">存放位置（{{locations.length}}）</view>
-    <view wx:if="{{locations.length === 0}}" class="location-empty">
-      <image class="location-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-      <text>暂无位置，先添加一个吧</text>
-    </view>
-    <view wx:for="{{locations}}" wx:for-item="l" wx:key="id" class="loc-row">
-      <block wx:if="{{renamingId !== l.id}}">
-        <text class="loc-name">{{l.name}}</text>
-        <view class="loc-actions">
-          <button size="mini" class="btn-ghost" data-id="{{l.id}}" data-name="{{l.name}}" bindtap="startRename">改名</button>
-          <button size="mini" class="btn-danger" data-id="{{l.id}}" data-name="{{l.name}}" bindtap="removeLocation">删</button>
-        </view>
-      </block>
-      <block wx:else>
-        <input class="ipt loc-rename-input" value="{{renameValue}}" bindinput="onRenameInput" focus="{{true}}" maxlength="20" />
-        <view class="loc-actions">
-          <button size="mini" class="btn-ghost" bindtap="cancelRename">取消</button>
-          <button size="mini" class="btn-primary" loading="{{renaming}}" disabled="{{renaming}}" bindtap="saveRename">保存</button>
-        </view>
-      </block>
-    </view>
+  <view wx:if="{{authState === 'checking'}}" class="center">正在加载存放位置…</view>
+  <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+  </view>
+  <view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在首页创建或加入家庭</view>
+  <view wx:elif="{{authState === 'error'}}" class="card center-hint">
+    <view>{{loadError}}</view>
+    <button class="btn-ghost location-retry" bindtap="restore">重新加载</button>
   </view>
 
-  <view class="card">
-    <view class="card-title">新增位置</view>
-    <view class="form-row">
-      <input class="ipt" value="{{newName}}" bindinput="onNewInput" placeholder="如 冰箱 / 药箱 / 客厅柜" maxlength="20" />
-      <button size="mini" class="btn-primary" loading="{{saving}}" disabled="{{saving}}" bindtap="addLocation">添加</button>
+  <view wx:else class="location-page">
+    <view class="card location-create">
+      <view class="card-title">新增位置</view>
+      <view class="location-add-row">
+        <input class="ipt" aria-label="位置名称" value="{{newName}}" bindinput="onNewInput" placeholder="如 冰箱、药箱" maxlength="20" confirm-type="done" bindconfirm="addLocation" />
+        <button size="mini" class="btn-primary" loading="{{saving}}" disabled="{{saving || renaming}}" bindtap="addLocation">添加</button>
+      </view>
+    </view>
+
+    <view class="location-heading">存放位置 · {{locations.length}}</view>
+    <view class="card location-list">
+      <view wx:if="{{locations.length === 0}}" class="location-empty">
+        <image class="location-illustration" src="/assets/illustrations/v3/scenes/location.png" mode="aspectFit" aria-hidden="true" />
+        <text>还没有位置</text>
+      </view>
+      <view wx:for="{{locations}}" wx:for-item="l" wx:key="id" class="loc-row">
+        <block wx:if="{{renamingId !== l.id}}">
+          <text class="loc-name">{{l.name}}</text>
+          <button size="mini" class="btn-ghost location-more" aria-label="管理位置 {{l.name}}" disabled="{{saving || renaming}}" data-id="{{l.id}}" bindtap="showLocationActions">管理</button>
+        </block>
+        <block wx:else>
+          <input class="ipt loc-rename-input" aria-label="新位置名称" value="{{renameValue}}" bindinput="onRenameInput" focus="{{true}}" maxlength="20" confirm-type="done" bindconfirm="saveRename" />
+          <view class="loc-actions">
+            <button size="mini" class="btn-ghost" disabled="{{renaming}}" bindtap="cancelRename">取消</button>
+            <button size="mini" class="btn-primary" loading="{{renaming}}" disabled="{{renaming || saving}}" bindtap="saveRename">保存</button>
+          </view>
+        </block>
+      </view>
     </view>
   </view>
-</view>
 </view>
