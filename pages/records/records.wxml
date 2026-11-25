@@ -43,7 +43,7 @@
   <view class="card">
     <view class="card-title">操作记录（{{records.length}}）</view>
     <view class="rec-filters">
-      <view wx:for="{{filters}}" wx:for-item="f" wx:key="key" class="rec-chip {{filter === f.key ? 'rec-chip-active' : ''}}" data-key="{{f.key}}" bindtap="onfilter">{{f.label}}</view>
+      <view wx:for="{{filters}}" wx:for-item="f" wx:key="key" class="rec-chip {{filter === f.key ? 'rec-chip-active' : ''}}" hover-class="row-hover" data-key="{{f.key}}" bindtap="onfilter" aria-label="筛选{{f.label}}记录">{{f.label}}</view>
     </view>
     <view wx:for="{{records}}" wx:for-item="r" wx:key="id" class="rec-row">
       <view class="rec-main">

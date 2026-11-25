@@ -165,9 +165,9 @@
       </view>
       <view class="bc-loc">位置：{{b.locationName}}</view>
       <view class="bc-actions">
-        <button wx:if="{{!b.isOpened}}" size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" catchtap="markOpened">开封</button>
-        <button size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="used" catchtap="setBatchStatus">用完</button>
-        <button size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="discarded" catchtap="setBatchStatus">报废</button>
+        <button wx:if="{{!b.isOpened}}" size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" catchtap="markOpened" aria-label="标记批次 {{b.displayExpiry}} 已开封">开封</button>
+        <button size="mini" class="btn-ghost" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="used" catchtap="setBatchStatus" aria-label="标记批次 {{b.displayExpiry}} 已用完">用完</button>
+        <button size="mini" class="btn-danger" loading="{{batchBusy}}" disabled="{{batchBusy}}" data-id="{{b.id}}" data-status="discarded" catchtap="setBatchStatus" aria-label="报废批次 {{b.displayExpiry}}，需二次确认">报废</button>
         <text class="batch-edit-hint">点卡片可编辑</text>
       </view>
     </view>

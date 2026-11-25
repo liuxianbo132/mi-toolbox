@@ -50,13 +50,17 @@
       <view class="dose-main">
         <view class="dose-name">{{d.itemName}}</view>
         <view wx:if="{{d.conflictKind}}" class="conflict-line">
-          <image class="conflict-ico" src="/assets/icons/alertCircle-red.svg" />
+          <image class="conflict-ico" src="{{d.conflictKind === 'forbidden' ? '/assets/icons/alertCircle-red.svg' : '/assets/icons/alertCircle.svg'}}" aria-label="{{d.conflictKind === 'forbidden' ? '禁用警告' : '注意提示' }}" />
           <text class="{{d.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{d.conflictLabel}}</text>
         </view>
         <view class="dose-meta" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>
       </view>
-      <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
-      <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" loading="{{doseBusy}}" disabled="{{doseBusy}}" data-id="{{d.id}}" bindtap="confirmDose">确认已服</button>
+      <view class="dose-side">
+        <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
+        <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" loading="{{doseBusy}}" disabled="{{doseBusy}}" data-id="{{d.id}}" bindtap="confirmDose" aria-label="确认 {{d.itemName}} 已服用">确认已服</button>
+        <text wx:elif="{{d.status === 'pending' && d.conflictForbid}}" class="dose-forbid-text" aria-label="禁用药物，不可打卡">禁用 · 不可打卡</text>
+        <button wx:if="{{d.canCorrect}}" size="mini" class="btn-ghost dose-btn" data-id="{{d.id}}" bindtap="correctDose" aria-label="更正 {{d.itemName}} 的打卡记录">更正</button>
+      </view>
     </view>
   </view>
 
@@ -71,7 +75,7 @@
       <view class="plan-main">
         <view class="plan-name">{{p.itemName}}</view>
         <view wx:if="{{p.conflictKind}}" class="conflict-line">
-          <image class="conflict-ico" src="/assets/icons/alertCircle-red.svg" />
+          <image class="conflict-ico" src="{{p.conflictKind === 'forbidden' ? '/assets/icons/alertCircle-red.svg' : '/assets/icons/alertCircle.svg'}}" aria-label="{{p.conflictKind === 'forbidden' ? '禁用警告' : '注意提示' }}" />
           <text class="{{p.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{p.conflictLabel}}</text>
         </view>
         <view class="plan-meta">{{p.freqLabel}} · {{p.timesText}}</view>

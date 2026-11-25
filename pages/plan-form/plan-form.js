@@ -43,7 +43,8 @@ Page({
     endDate: '',
     thresholdOptions: THRESHOLD_OPTIONS,
     thresholdIndex: THRESHOLD_OPTIONS.indexOf('30'),
-    // 过敏冲突提示（m2-brief #8，展示范围=当前用户档案）
+    // 过敏冲突提示（P0-1 修复：按选中服药人 member_id 的档案判断，不再按登录用户）
+    conflictState: 'ready', // ready | error（error 时显示冲突未知警示，不显示为安全）
     myHits: [],
     hitsSummary: '',
     hitsWorst: '',
@@ -157,43 +158,40 @@ Page({
       this.setData({ startDate: this.formatDate(now), endDate: this.formatDate(end) })
     }
     const current = this.data.medicines[this.data.medicineIndex]
-    this.loadConflict(current && current.id)
+    const currentMember = this.data.members[this.data.memberIndex]
+    this.loadConflict(current && current.id, currentMember && currentMember.id)
   },
 
-  // 当前用户过敏档案 ∩ 选中药品关联（m2-brief #8）
-  async loadConflict(itemId) {
-    if (!itemId) {
-      this.setData({ myHits: [], hitsSummary: '', hitsWorst: '' })
+  // 按选中服药人 member_id 的过敏档案 ∩ 选中药品关联（P0-1：切换成员/药品后实时重算）
+  // 档案或关联查询失败 → conflictState='error'，显示「冲突未知」，不得显示为安全
+  async loadConflict(itemId, memberId) {
+    if (!itemId || !memberId) {
+      this.setData({ conflictState: 'ready', myHits: [], hitsSummary: '', hitsWorst: '' })
       return
     }
     const linkRes = await cloud.database
       .from('drug_allergy_links')
       .select('id, allergen, kind')
       .eq('item_id', itemId)
-    const links = linkRes.data || []
-    let hits = []
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
-    if (uid) {
-      const memberRes = await cloud.database
-        .from('members')
-        .select('id')
-        .eq('owner_id', uid)
-        .limit(1)
-      const myMemberId = memberRes.data && memberRes.data[0] && memberRes.data[0].id
-      if (myMemberId) {
-        const alRes = await cloud.database
-          .from('allergies')
-          .select('allergen')
-          .eq('member_id', myMemberId)
-        hits = matchAllergies(
-          (alRes.data || []).map(function (a) {
-            return a.allergen
-          }),
-          links
-        )
-      }
+    if (linkRes.error) {
+      this.setData({ conflictState: 'error', myHits: [], hitsSummary: '', hitsWorst: 'unknown' })
+      return
     }
+    const links = linkRes.data || []
+    const alRes = await cloud.database
+      .from('allergies')
+      .select('allergen')
+      .eq('member_id', memberId)
+    if (alRes.error) {
+      this.setData({ conflictState: 'error', myHits: [], hitsSummary: '', hitsWorst: 'unknown' })
+      return
+    }
+    const hits = matchAllergies(
+      (alRes.data || []).map(function (a) {
+        return a.allergen
+      }),
+      links
+    )
     let hitsWorst = ''
     if (hits.length) {
       hitsWorst = 'caution'
@@ -204,7 +202,7 @@ Page({
         }
       }
     }
-    this.setData({ myHits: hits, hitsSummary: hitsText(hits), hitsWorst: hitsWorst })
+    this.setData({ conflictState: 'ready', myHits: hits, hitsSummary: hitsText(hits), hitsWorst: hitsWorst })
   },
 
   formatDate(d) {
@@ -264,13 +262,18 @@ Page({
 
   onMemberChange(e) {
     this.setData({ memberIndex: Number(e.detail.value) || 0 })
+    // P0-1：切换服药人后按新成员档案重算冲突
+    const medicine = this.data.medicines[this.data.medicineIndex]
+    const member = this.data.members[this.data.memberIndex]
+    this.loadConflict(medicine && medicine.id, member && member.id)
   },
 
   onMedicineChange(e) {
     const idx = Number(e.detail.value) || 0
     this.setData({ medicineIndex: idx })
     const medicine = this.data.medicines[idx]
-    this.loadConflict(medicine && medicine.id)
+    const member = this.data.members[this.data.memberIndex]
+    this.loadConflict(medicine && medicine.id, member && member.id)
   },
 
   onFreqChange(e) {
@@ -367,8 +370,6 @@ Page({
         wx.showToast({ title: (upd.error && upd.error.message) || '保存失败', icon: 'none' })
         return
       }
-      // 变更前删除未来未发生的 pending（taken/missed 保留）
-      await this.removeFuturePending(planId)
     } else {
       const created = await plansAccess.create(payload)
       if (created.error || !created.data) {
@@ -393,7 +394,22 @@ Page({
         status: 'pending',
       }
     })
-    const bulk = await createDosesBulk(rows)
+
+    // P0-3：编辑路径优先原子 RPC（删未来 pending + 重建同事务，迁移 07）；未部署回退两步流程。
+    // 已发生的 taken/missed 两条路径都不动。
+    let bulk = { error: null }
+    if (this.data.planId) {
+      const repl = await cloud.database.rpc('replace_future_doses', {
+        p_plan_id: planId,
+        p_rows: scheduled.map(function (iso) { return { scheduled_at: iso } }),
+      })
+      if (repl.error || repl.data !== 'ok') {
+        await this.removeFuturePending(planId)
+        bulk = await createDosesBulk(rows)
+      }
+    } else {
+      bulk = await createDosesBulk(rows)
+    }
     this.setData({ saving: false })
     if (bulk.error) {
       wx.showToast({ title: '计划已保存，提醒生成失败，请重新保存一次', icon: 'none', duration: 2500 })

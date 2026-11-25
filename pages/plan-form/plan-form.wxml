@@ -20,8 +20,11 @@
       </picker>
     </view>
 
-    <view wx:if="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
-      <text>你的过敏档案命中：{{hitsSummary}}</text>
+    <view wx:if="{{conflictState === 'error'}}" class="conflict-banner conflict-warn">
+      <text>{{memberNames[memberIndex] || '该成员'}} 的过敏档案暂时无法加载，冲突状态未知，请保存前先到「过敏档案」核对。</text>
+    </view>
+    <view wx:elif="{{myHits.length > 0}}" class="conflict-banner {{hitsWorst === 'forbidden' ? 'conflict-danger' : 'conflict-warn'}}">
+      <text>{{memberNames[memberIndex] || '该成员'}} 的过敏档案命中：{{hitsSummary}}</text>
     </view>
 
     <view class="form-row">

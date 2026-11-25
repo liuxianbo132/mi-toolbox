@@ -61,7 +61,7 @@
 /* 动作标签：开封用品牌色、用完为中性地灰 */
 .rec-open {
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   border-radius: var(--radius-sm);
   padding: 4rpx 12rpx;
   font-size: var(--font-xs);
@@ -165,6 +165,9 @@
 }
 
 .rec-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 64rpx;
   padding: 8rpx 20rpx;
   border-radius: var(--radius-sm);
   background: rgba(120, 120, 128, 0.12);
@@ -174,7 +177,7 @@
 
 .rec-chip-active {
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   font-weight: 600;
 }
 

@@ -131,6 +131,18 @@ button[size="mini"] {
   opacity: 0.82;
 }
 
+/* 统一禁用态：所有自定义按钮类在 disabled 时降透明度并去饱和，
+   避免禁用按钮看起来仍可点击（HIG：控件状态必须可感知） */
+.btn-primary[disabled],
+.btn-ghost[disabled],
+.btn-warn[disabled],
+.btn-danger[disabled],
+button[size="mini"][disabled] {
+  opacity: 0.45;
+  filter: saturate(0.4);
+  color: var(--color-text-2);
+}
+
 /* ===== 语义标签（映射固定：red=过期·危险，amber=临期·注意，green=安全·在库） ===== */
 
 .tag-red,
@@ -528,3 +540,6 @@ button[size="mini"] {
 /* 依从率页把 .bar-label 固定在 22rpx，需用更深选择器覆盖，并放宽单格避免日期挤在一起 */
 .large-text .chart-box .bar-label { font-size: 26rpx; line-height: 1.35; margin-top: 8rpx; }
 .large-text .bar-cell { min-width: 72rpx; }
+
+/* P0-2 新增状态提示（2026-11-24）：禁用药物不可打卡文字 */
+.large-text .dose-forbid-text { font-size: 28rpx; line-height: 1.5; }

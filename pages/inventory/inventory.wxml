@@ -21,19 +21,19 @@
 
     <input class="ipt search-input" placeholder="搜索名称、品牌、规格或条码" value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
     <view class="filter-row">
-      <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
+      <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange" hover-class="row-hover">
         <view class="filter-value">
           <text>{{categoryOptions[categoryIndex].label}}</text>
           <image class="filter-arrow" src="/assets/icons/chevron.svg" />
         </view>
       </picker>
-      <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange">
+      <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange" hover-class="row-hover">
         <view class="filter-value">
           <text>{{locationOptions[locationIndex].name}}</text>
           <image class="filter-arrow" src="/assets/icons/chevron.svg" />
         </view>
       </picker>
-      <picker class="filter-picker sort-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange">
+      <picker class="filter-picker sort-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange" hover-class="row-hover">
         <view class="filter-value">
           <text>{{sortOptions[sortIndex]}}</text>
           <image class="filter-arrow" src="/assets/icons/chevron.svg" />

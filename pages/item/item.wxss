@@ -171,7 +171,7 @@
 .opened-tag {
   margin-left: 12rpx;
   background: var(--color-primary-light);
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   border-radius: var(--radius-sm);
   padding: 2rpx 10rpx;
   font-size: 20rpx;

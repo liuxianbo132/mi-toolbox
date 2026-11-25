@@ -18,8 +18,8 @@
 <view wx:else>
   <!-- 范围切换 -->
   <view class="range-tabs">
-    <view class="range-tab {{range === 'week' ? 'on' : ''}}" data-range="week" bindtap="switchrange">本周</view>
-    <view class="range-tab {{range === 'month' ? 'on' : ''}}" data-range="month" bindtap="switchrange">本月</view>
+    <view class="range-tab {{range === 'week' ? 'on' : ''}}" hover-class="row-hover" data-range="week" bindtap="switchrange" aria-label="查看本周依从率">本周</view>
+    <view class="range-tab {{range === 'month' ? 'on' : ''}}" hover-class="row-hover" data-range="month" bindtap="switchrange" aria-label="查看本月依从率">本月</view>
   </view>
 
   <!-- 依从率 + 逐日柱状图 -->

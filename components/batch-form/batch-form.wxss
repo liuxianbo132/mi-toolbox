@@ -25,7 +25,7 @@
 
 .bf-mode-active {
   background: var(--color-card);
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   font-weight: 500;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
@@ -80,7 +80,7 @@
 }
 
 .bf-calc {
-  color: var(--color-primary);
+  color: var(--color-primary-ink);
   font-weight: 500;
 }
 
