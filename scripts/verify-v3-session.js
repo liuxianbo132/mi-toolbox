@@ -10,6 +10,11 @@ async function verify() {
   let calls = 0
   let nicknameCalls = 0
   let resolveNickname
+  let updateReady
+  let updateFailed
+  let updateDialog
+  let updateToast
+  let restarts = 0
   const auth = {
     onAuthStateChange(fn) { listener = fn },
     getSession() { calls += 1; return response },
@@ -23,7 +28,18 @@ async function verify() {
   }
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8'), {
     App(config) { app = config },
-    wx: { getStorageSync() { return 'standard' } },
+    wx: {
+      getStorageSync() { return 'standard' },
+      getUpdateManager() {
+        return {
+          onUpdateReady(fn) { updateReady = fn },
+          onUpdateFailed(fn) { updateFailed = fn },
+          applyUpdate() { restarts += 1 },
+        }
+      },
+      showModal(options) { updateDialog = options },
+      showToast(options) { updateToast = options },
+    },
     require() { return { cloud: { auth, database: { from() { return membershipQuery } } } } },
   })
   app.onLaunch()
@@ -65,7 +81,16 @@ async function verify() {
   assert.equal(signedOut.data, null)
   assert.equal(signedOut.error, null)
   assert.equal(app.globalData.myNickname, '')
+  updateFailed()
+  assert.match(updateToast.title, /更新下载失败/)
+  assert.equal(restarts, 0)
+  updateReady()
+  updateDialog.success({ confirm: false })
+  assert.equal(restarts, 0)
+  updateDialog.success({ confirm: true })
+  assert.equal(restarts, 1)
   console.log('PASS: session deduplication, transient refresh, retries, account switch and sign-out')
+  console.log('PASS: update download failure continues current session, restart requires confirmation')
 }
 
 verify().catch((error) => { console.error(error); process.exitCode = 1 })

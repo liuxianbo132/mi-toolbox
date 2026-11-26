@@ -16,6 +16,26 @@ App({
       this.storedUserId = uid || ''
       if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') this.resetSession()
     })
+    this.watchForUpdates()
+  },
+
+  watchForUpdates() {
+    if (typeof wx.getUpdateManager !== 'function') return
+    const updateManager = wx.getUpdateManager()
+    updateManager.onUpdateReady(() => {
+      wx.showModal({
+        title: '小咪有新版本',
+        content: '重启会关闭当前页面。请先保存正在填写的内容。',
+        confirmText: '立即重启',
+        cancelText: '稍后',
+        success: ({ confirm }) => {
+          if (confirm) updateManager.applyUpdate()
+        },
+      })
+    })
+    updateManager.onUpdateFailed(() => {
+      wx.showToast({ title: '更新下载失败，请稍后重新打开小程序', icon: 'none' })
+    })
   },
 
   setLargeText(enabled) {
