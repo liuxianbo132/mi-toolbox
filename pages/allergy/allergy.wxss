@@ -1,36 +1,47 @@
-/* 过敏档案页；公共类已收编至 app.wxss */
-
-.hint-sm {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  padding: 12rpx 0;
-  text-align: center;
+.allergy-page { padding: var(--space-2) var(--space-4) var(--space-4); }
+.allergy-member {
+  margin: 0 0 var(--space-2) var(--space-1);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
+.allergy-group { margin: 0; padding: var(--space-3); }
 
 .allergen-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-2) 0;
-  border-top: 1rpx solid var(--color-border);
+  gap: var(--space-2);
+  min-height: 108rpx;
+  padding: var(--space-1) 0;
 }
-
-.allergen-row:first-child {
-  border-top: none;
-}
-
+.allergen-row + .allergen-row { border-top: 1rpx solid var(--color-border); }
 .allergen-name {
   flex: 1;
   min-width: 0;
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.allergy-action {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 var(--space-2);
+  font-size: var(--font-sm);
 }
 
-.form-hint {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  line-height: 1.6;
-  margin-top: var(--space-2);
+.allergy-entry { margin-bottom: 0; }
+.allergy-entry .ipt { min-width: 0; }
+.allergy-status, .form-hint {
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.55;
 }
+.form-hint { margin-top: var(--space-2); }
+.allergy-status .allergy-action { margin-top: var(--space-2); }
+.large-text .allergy-member { font-size: 52rpx; }
+.large-text .allergy-status { font-size: 28rpx; }
+.large-text .allergy-entry { flex-wrap: wrap; }
+.large-text .allergy-entry .ipt { flex-basis: 100%; }

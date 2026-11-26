@@ -22,7 +22,7 @@
     "list": [
       {
         "pagePath": "pages/home/home",
-        "text": "临期看板",
+        "text": "首页",
         "iconPath": "assets/icons/tabbar/home-normal.png",
         "selectedIconPath": "assets/icons/tabbar/home-selected.png"
       },

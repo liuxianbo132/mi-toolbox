@@ -1,4 +1,18 @@
-/* 操作记录页；公共类已收编至 app.wxss */
+.records-list { margin: 24rpx var(--space-4) 48rpx; }
+.record-group { margin-top: var(--space-2); }
+.record-date,
+.list-note {
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  margin: 8rpx 0 12rpx;
+}
+.record-rows {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-3);
+}
+.large-text .record-date, .large-text .list-note { font-size: 30rpx; }
 
 .hint-sm {
   color: var(--color-text-3);
@@ -12,6 +26,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--space-2);
+  min-height: 104rpx;
   padding: var(--space-2) 0;
   border-top: 1rpx solid var(--color-border);
 }
@@ -137,7 +152,7 @@
 
 .ratio-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7BE3A0, #34C759);
+  background: var(--color-green);
   border-radius: 5rpx;
 }
 
@@ -167,13 +182,17 @@
 .rec-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 64rpx;
-  padding: 8rpx 20rpx;
+  min-height: 88rpx;
+  margin: 0;
+  padding: 8rpx 18rpx;
   border-radius: var(--radius-sm);
   background: rgba(120, 120, 128, 0.12);
   color: var(--color-text-2);
   font-size: var(--font-xs);
+  line-height: 1.4;
 }
+.rec-chip::after { border: none; }
+.rec-chip.row-hover { background: var(--color-primary-light); }
 
 .rec-chip-active {
   background: var(--color-primary-light);

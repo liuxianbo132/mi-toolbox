@@ -2,7 +2,10 @@
 
 .ipt-flex {
   flex: 1;
+  min-width: 0;
 }
+
+.page { padding: 8rpx 8rpx 40rpx; }
 
 .detail-head {
   display: flex;
@@ -17,7 +20,7 @@
   min-width: 0;
   font-size: var(--font-xl);
   font-weight: 600;
-  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .detail-head button {
@@ -33,6 +36,16 @@
   font-size: var(--font-xs);
   line-height: 1.5;
 }
+
+.detail-condition {
+  margin-top: 12rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--color-border);
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+}
+.detail-card .conflict-banner { margin: 16rpx 0 0; }
 
 .sec-head {
   display: flex;
@@ -179,10 +192,11 @@
 
 /* ===== V2 Step1：在库批次卡片组 ===== */
 
-.batch-card {
-  display: block;
-  padding: var(--space-3);
-}
+.detail-zone-head { flex-wrap: wrap; gap: 8rpx 16rpx; }
+.batch-limit { padding: 0 var(--space-3); margin: 8rpx 0; color: var(--color-text-2); }
+.batch-group { padding: 0; overflow: hidden; }
+.batch-row-detail { padding: 20rpx var(--space-3); }
+.batch-row-detail + .batch-row-detail { border-top: 1rpx solid var(--color-border); }
 
 .bc-top {
   display: flex;
@@ -206,14 +220,17 @@
 
 .bc-side {
   display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+  max-width: 36%;
 }
 
 .bc-qty {
   color: var(--color-text-3);
   font-size: var(--font-xs);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .bc-loc {
@@ -225,11 +242,12 @@
 .bc-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12rpx;
   margin-top: var(--space-2);
-  padding-top: var(--space-2);
-  border-top: 1rpx solid var(--color-border);
 }
+.bc-actions button { min-width: 88rpx; }
+.bc-actions .batch-menu { margin-left: auto; }
 
 /* ===== V2 Step1：历史批次折叠 ===== */
 
@@ -253,15 +271,14 @@
   width: 96rpx;
   height: 96rpx;
   border-radius: 24rpx;
-  background: #F3F6FC;
+  background: var(--color-bg);
   flex-shrink: 0;
 }
 .detail-copy { flex: 1; min-width: 0; }
 .detail-meta text { color: var(--color-text-2); }
-.batch-edit-hint {
-  margin-left: auto;
-  font-size: 24rpx;
-  color: var(--color-text-2);
-}
 .fold-head { min-height: 88rpx; }
-.delete-card { margin-top: 8rpx; }
+.delete-card { margin-top: var(--space-4); }
+.delete-card .card-title { font-size: var(--font-md); color: var(--color-text-2); }
+.large-text .detail-condition { font-size: 28rpx; }
+.large-text .detail-card .form-row { align-items: stretch; flex-direction: column; gap: 8rpx; }
+.large-text .detail-card .f-label { text-align: left; width: auto; }

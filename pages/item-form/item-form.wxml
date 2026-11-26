@@ -1,62 +1,80 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
-
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
-
-<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
-
-<view wx:else>
-  <view class="card">
-    <view class="card-title">物品信息</view>
-    <button class="btn-ghost recognize-btn" loading="{{recognizing}}" disabled="{{recognizing}}" bindtap="onRecognize">
-      <image class="recognize-ico" src="/assets/icons/camera.svg" />
-      <text>拍照识别（自动填名称 / 品类 / 保质期）</text>
-    </button>
-    <view class="recognize-hint">照片会上传云端用于识别，请避免拍到人脸或个人信息</view>
-    <view class="form-row">
-      <text class="f-label">名称</text>
-      <input class="ipt" value="{{name}}" bindinput="onNameInput" placeholder="如 鲜牛奶" />
-    </view>
-    <view class="form-row">
-      <text class="f-label">品类</text>
-      <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
-        <view class="ipt cat-picker">
-          <image class="picker-ico" src="{{categoryOptions[categoryIndex].illustration}}" mode="aspectFit" />
-          <text>{{categoryOptions[categoryIndex].label}}</text>
-        </view>
-      </picker>
-    </view>
-    <view class="form-row">
-      <text class="f-label">单位</text>
-      <input class="ipt" value="{{unit}}" bindinput="onUnitInput" placeholder="如 盒 / 瓶 / 袋" />
-    </view>
-    <view class="form-row">
-      <text class="f-label">品牌</text>
-      <input class="ipt" value="{{brand}}" bindinput="onBrandInput" placeholder="选填" />
-    </view>
-    <view class="form-row">
-      <text class="f-label">规格</text>
-      <input class="ipt" value="{{spec}}" bindinput="onSpecInput" placeholder="选填，如 250ml×12" />
-    </view>
-    <view class="form-row">
-      <text class="f-label">低库存提醒</text>
-      <input class="ipt" type="number" maxlength="3" value="{{lowStockThreshold}}" bindinput="onLowStockThresholdInput" placeholder="选填，默认 0" />
-    </view>
-    <view class="hint-sm low-stock-hint">数量 ≤ 此值时提示待补货；留空按 0（用完）</view>
-    <view wx:if="{{barcode}}" class="form-row">
-      <text class="f-label">条码</text>
-      <view class="ipt barcode-value">{{barcode}}</view>
-    </view>
+  <view wx:if="{{authState === 'checking'}}" class="center">正在验证家庭信息…</view>
+  <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
+  </view>
+  <view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在首页创建或加入家庭</view>
+  <view wx:elif="{{authState === 'error'}}" class="card center-hint">
+    <view>{{loadError}}</view>
+    <button class="btn-ghost form-retry" bindtap="restore">重新加载</button>
   </view>
 
-  <view class="card">
-    <view class="card-title">首批批次</view>
-    <batch-form id="batchForm" default-unit="{{unit}}" locations="{{locations}}" large-text="{{largeText}}"></batch-form>
-    <button class="btn-primary save-btn" loading="{{saving}}" disabled="{{saving}}" bindtap="onSaveTap">保存</button>
-  </view>
-</view>
+  <view wx:else class="entry-form">
+    <view class="card entry-card">
+      <view class="entry-head">
+        <view class="card-title">物品资料</view>
+        <button class="btn-ghost recognize-btn" loading="{{recognizing}}" disabled="{{recognizing || saving || saveUnknown}}" bindtap="onRecognize">
+          <image class="recognize-ico" src="/assets/icons/camera.svg" /><text>拍照识别</text>
+        </button>
+      </view>
+      <view class="recognize-hint">照片会上传云端。请避免拍到人脸或个人信息，识别后请核对内容。</view>
+      <view class="form-row">
+        <text class="f-label">名称</text>
+        <input class="ipt" aria-label="物品名称" value="{{name}}" bindinput="onNameInput" placeholder="如 鲜牛奶" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">品类</text>
+        <picker class="ipt-flex" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange" disabled="{{saving || saveUnknown}}">
+          <view class="ipt cat-picker">
+            <image class="picker-ico" src="{{categoryOptions[categoryIndex].illustration}}" mode="aspectFit" />
+            <text>{{categoryOptions[categoryIndex].label}}</text>
+          </view>
+        </picker>
+      </view>
+      <view class="form-row">
+        <text class="f-label">单位</text>
+        <input class="ipt" aria-label="单位" value="{{unit}}" bindinput="onUnitInput" placeholder="如 盒、瓶、袋" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">品牌</text>
+        <input class="ipt" aria-label="品牌" value="{{brand}}" bindinput="onBrandInput" placeholder="选填" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">规格</text>
+        <input class="ipt" aria-label="规格" value="{{spec}}" bindinput="onSpecInput" placeholder="选填，如 250 mL" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">条码</text>
+        <input class="ipt" aria-label="条码" value="{{barcode}}" bindinput="onBarcodeInput" placeholder="选填" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-row">
+        <text class="f-label">低库存提醒</text>
+        <input class="ipt" aria-label="低库存提醒数量" type="number" maxlength="3" value="{{lowStockThreshold}}" bindinput="onLowStockThresholdInput" placeholder="默认 0" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-hint entry-note">在库数量不超过此值时进入待补货列表。</view>
+      <view class="form-row">
+        <text class="f-label">开封后有效期</text>
+        <input class="ipt" aria-label="开封后有效期天数" type="number" maxlength="4" value="{{paoDays}}" bindinput="onPaoDaysInput" placeholder="选填，单位为天" disabled="{{saving || saveUnknown}}" />
+      </view>
+      <view class="form-hint entry-note">按包装标注填写。留空时按批次到期日管理。</view>
+    </view>
 
+    <view class="card entry-card">
+      <view class="card-title">首个批次</view>
+      <view wx:if="{{locationsError}}" class="location-error">
+        <text>存放位置暂时无法加载</text>
+        <button class="btn-ghost form-retry" bindtap="retryLocations">重试</button>
+      </view>
+      <view hidden="{{saveUnknown}}">
+        <batch-form id="batchForm" default-unit="{{unit}}" locations="{{locations}}" large-text="{{largeText}}"></batch-form>
+      </view>
+      <view wx:if="{{saveError}}" class="entry-save-error">{{saveError}}</view>
+    </view>
+
+    <view class="save-bar">
+      <button wx:if="{{saveConflict}}" class="btn-primary" bindtap="checkSaveResult">前往库存核对</button>
+      <button wx:else class="btn-primary" loading="{{saving}}" disabled="{{saving || recognizing || saveComplete}}" bindtap="onSaveTap">{{saveUnknown ? '重试本次保存' : '保存物品与批次'}}</button>
+    </view>
+  </view>
 </view>

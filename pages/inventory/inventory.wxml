@@ -1,94 +1,106 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+  <state-view wx:if="{{authState === 'checking' || authState === 'household-loading'}}" title="{{authState === 'checking' ? '正在验证登录' : '正在加载家庭'}}" compact="{{true}}" />
 
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <view class="app-title">小咪工具箱</view>
-  <view class="app-sub">登录后查看家庭库存</view>
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
-
-<state-view wx:elif="{{loadError}}" icon="/assets/icons/alertCircle-red.svg" title="库存暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryinventoryload" />
-
-<state-view wx:elif="{{!household}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="先创建或加入一个家庭，才能和家人共享库存" action-text="前往临期看板" bindaction="gohome" />
-
-<view wx:else class="page">
-  <view class="card inventory-tools">
-    <view class="tool-head">
-      <view class="tool-title">家庭库存</view>
-      <view class="tool-sub">{{allItems.length}} 件物品</view>
-    </view>
-
-    <input class="ipt search-input" placeholder="搜索名称、品牌、规格或条码" value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
-    <view class="filter-row">
-      <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange" hover-class="row-hover">
-        <view class="filter-value">
-          <text>{{categoryOptions[categoryIndex].label}}</text>
-          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
-        </view>
-      </picker>
-      <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange" hover-class="row-hover">
-        <view class="filter-value">
-          <text>{{locationOptions[locationIndex].name}}</text>
-          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
-        </view>
-      </picker>
-      <picker class="filter-picker sort-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange" hover-class="row-hover">
-        <view class="filter-value">
-          <text>{{sortOptions[sortIndex]}}</text>
-          <image class="filter-arrow" src="/assets/icons/chevron.svg" />
-        </view>
-      </picker>
-    </view>
-    <view class="stock-filter-row">
-      <text class="stock-filter-label">库存状态</text>
-      <view class="stock-filter-chips">
-        <view class="stock-filter-chip {{stockFilter === 'all' ? 'is-selected' : ''}}" data-filter="all" hover-class="button-hover" bindtap="onstockfiltertap">全部</view>
-        <view class="stock-filter-chip {{stockFilter === 'low' ? 'is-selected' : ''}}" data-filter="low" hover-class="button-hover" bindtap="onstockfiltertap">待补货</view>
-      </view>
-    </view>
-    <view wx:if="{{searchText || categoryIndex !== 0 || locationIndex !== 0 || sortIndex !== 0 || stockFilter === 'low'}}" class="clear-row">
-      <button size="mini" class="btn-ghost" hover-class="button-hover" bindtap="clearInventoryFilters">清空筛选</button>
-    </view>
-    <view wx:if="{{itemsLimited || batchDataLimited}}" class="limit-hint">{{itemsLimited ? '搜索范围限最近的 1000 件物品' : ''}}{{itemsLimited && batchDataLimited ? '；' : ''}}{{batchDataLimited ? '位置与到期筛选最多参考 3000 个在库批次' : ''}}</view>
-
-    <view class="action-row">
-      <button class="btn-primary add-btn" hover-class="button-hover" bindtap="goCreate">新增物品</button>
-      <button class="btn-ghost scan-btn" hover-class="button-hover" bindtap="gobarcode">扫码</button>
-    </view>
-    <view class="loc-entry" hover-class="row-hover" bindtap="golocations">
-      <text>管理存放位置</text>
-      <image class="loc-arrow" src="/assets/icons/chevron.svg" />
-    </view>
+  <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
+    <view class="app-title">小咪工具箱</view>
+    <view class="app-sub">登录后查看家庭库存</view>
+    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
   </view>
 
-  <state-view wx:if="{{loading}}" title="正在加载库存" desc="整理家庭物品，请稍候" compact="{{true}}" />
+  <state-view wx:elif="{{authState === 'error'}}" icon="/assets/icons/alertCircle-red.svg" title="库存暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryinventoryload" />
 
-  <state-view wx:elif="{{items.length === 0 && allItems.length === 0}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有物品记录" desc="把家里的第一件物品记录下来吧" action-text="去录入" bindaction="gocreate" />
+    <state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/illustrations/v3/scenes/family.png" illustration="{{true}}" title="还没有加入家庭" desc="创建或加入家庭后即可共享库存" action-text="前往首页" bindaction="gohome" />
 
-  <state-view wx:elif="{{items.length === 0}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="没有符合条件的物品" desc="试试更换关键词或清空筛选条件" action-text="清空筛选" bindaction="clearinventoryfilters" />
-
-  <block wx:else>
-    <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="group-card">
-      <view class="group-head">
-        <image class="group-ico" src="{{g.illu}}" mode="aspectFit" />
-        <text class="group-label">{{g.label}}</text>
-        <text class="group-count">{{g.count}}</text>
-      </view>
-      <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="item-row" hover-class="row-hover" data-id="{{item.id}}" bindtap="goDetail">
-        <image class="item-illu" src="{{item.illu}}" mode="aspectFit" />
-        <view class="item-main">
-          <view class="item-name">{{item.name}}</view>
-          <view class="item-meta">{{item.brand || ''}}{{item.brand && item.spec ? ' · ' : ''}}{{item.spec || ''}}</view>
-          <view class="item-meta">{{item.earliestExpiry ? '最近到期 ' + item.earliestExpiry : '暂无在库批次'}} · {{item.locText}}</view>
-        </view>
-        <view class="item-side">
-          <text class="stock-num {{item.lowStock ? 'is-low' : ''}}">{{item.stockText}}</text>
-          <text wx:if="{{item.lowStock}}" class="tag-amber stock-tag">{{item.totalQty === 0 ? '待补货' : '库存不足'}}</text>
-        </view>
-        <image class="row-arrow" src="/assets/icons/chevron.svg" />
-      </view>
+  <view wx:else class="inventory-page">
+    <view class="inventory-head">
+      <text class="section-title">家庭库存</text>
+      <text wx:if="{{!loading}}" class="inventory-count">{{totalCount}}{{itemsLimited ? '+' : ''}} 种物品</text>
     </view>
-  </block>
-</view>
+
+    <view class="inventory-actions">
+      <button class="btn-primary" hover-class="button-hover" bindtap="goCreate">新增物品</button>
+      <button class="btn-ghost inventory-secondary" hover-class="button-hover" bindtap="gobarcode"><image class="scan-icon" src="/assets/icons/scan.svg" mode="aspectFit" />扫码</button>
+    </view>
+
+    <input class="ipt inventory-search" aria-label="搜索库存" placeholder="搜索名称、品牌、规格或条码" value="{{searchText}}" bindinput="onSearchInput" confirm-type="search" />
+
+    <view class="filter-toolbar">
+      <view class="stock-tabs">
+        <button class="stock-tab {{stockFilter === 'all' ? 'is-selected' : ''}}" data-filter="all" hover-class="button-hover" bindtap="onstockfiltertap">全部</button>
+        <button class="stock-tab {{stockFilter === 'low' ? 'is-selected' : ''}}" data-filter="low" hover-class="button-hover" bindtap="onstockfiltertap">待补货</button>
+      </view>
+      <button class="filter-button {{filtersOpen || filterSummary ? 'is-selected' : ''}}" hover-class="button-hover" bindtap="toggleFilters">{{filtersOpen ? '收起筛选' : '筛选与管理'}}</button>
+    </view>
+
+    <view wx:if="{{filtersOpen}}" class="filter-panel">
+      <view class="filter-row">
+        <picker class="filter-picker" mode="selector" range="{{categoryOptions}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategoryChange">
+          <view class="filter-value">
+            <text>{{categoryOptions[categoryIndex].label}}</text><image class="filter-arrow" src="/assets/icons/chevron.svg" />
+          </view>
+        </picker>
+        <picker class="filter-picker" mode="selector" range="{{locationOptions}}" range-key="name" value="{{locationIndex}}" bindchange="onLocationChange">
+          <view class="filter-value">
+            <text>{{locationOptions[locationIndex].name}}</text><image class="filter-arrow" src="/assets/icons/chevron.svg" />
+          </view>
+        </picker>
+        <picker class="filter-picker" mode="selector" range="{{sortOptions}}" value="{{sortIndex}}" bindchange="onSortChange">
+          <view class="filter-value">
+            <text>{{sortOptions[sortIndex]}}</text><image class="filter-arrow" src="/assets/icons/chevron.svg" />
+          </view>
+        </picker>
+      </view>
+      <button class="loc-entry" hover-class="row-hover" bindtap="golocations">
+        <text>管理存放位置</text><image class="loc-arrow" src="/assets/icons/chevron.svg" />
+      </button>
+    </view>
+
+    <view wx:if="{{searchText || filterSummary || stockFilter === 'low'}}" class="filter-selection">
+      <text>{{filterSummary || (searchText ? '搜索结果' : '待补货物品')}}{{loading ? '' : ' · ' + resultCount + ' 种'}}</text>
+      <button class="clear-button" hover-class="button-hover" bindtap="clearInventoryFilters">清空</button>
+    </view>
+    <view wx:if="{{itemsLimited || batchDataLimited}}" class="limit-hint">
+      {{itemsLimited ? '当前仅显示最近添加的 1000 种物品。' : ''}}{{batchDataLimited ? '在库批次数较多，位置与到期日可能不全，补货状态需到详情核对。' : ''}}
+    </view>
+    <view wx:if="{{quantitiesUnknown && !batchDataLimited}}" class="limit-hint">部分批次的单位或数量需核对，可前往物品详情查看。</view>
+
+    <view wx:if="{{loading}}" class="inventory-skeleton" aria-label="正在加载库存">
+      <view class="skeleton-row"><view class="skeleton-icon" /><view class="skeleton-lines"><view /><view /></view></view>
+      <view class="skeleton-row"><view class="skeleton-icon" /><view class="skeleton-lines"><view /><view /></view></view>
+    </view>
+
+    <state-view wx:elif="{{totalCount === 0}}" icon="/assets/illustrations/v3/scenes/inventory.png" illustration="{{true}}" title="还没有物品记录" desc="把家里的第一件物品记录下来吧" action-text="去录入" bindaction="gocreate" />
+
+    <state-view wx:elif="{{stockFilter === 'low' && batchDataLimited}}" icon="/assets/icons/box.svg" title="暂时无法汇总待补货物品" desc="可返回全部库存，到物品详情核对批次" action-text="查看全部" bindaction="clearinventoryfilters" />
+
+    <state-view wx:elif="{{resultCount === 0 && stockFilter === 'low' && !searchText && !filterSummary}}" icon="/assets/icons/checkCircle-green.svg" title="{{itemsLimited || quantitiesUnknown ? '可核对的物品暂无补货需求' : '没有待补货物品'}}" compact="{{true}}" />
+
+    <state-view wx:elif="{{resultCount === 0}}" icon="/assets/illustrations/v3/scenes/search.png" illustration="{{true}}" title="没有符合条件的物品" desc="试试更换关键词或清空筛选条件" action-text="清空筛选" bindaction="clearinventoryfilters" />
+
+    <block wx:else>
+      <view wx:for="{{groups}}" wx:for-item="g" wx:key="key" class="inventory-group">
+        <view class="group-head">
+          <text class="group-label">{{g.label}}</text><text class="group-count">{{g.count}}</text>
+        </view>
+        <view class="group-card">
+          <view wx:for="{{g.items}}" wx:for-item="item" wx:key="id" class="item-row" role="button" hover-class="row-hover" data-id="{{item.id}}" bindtap="goDetail">
+            <image class="item-illu" src="{{item.illu}}" mode="aspectFit" lazy-load="{{true}}" />
+            <view class="item-main">
+              <view class="item-name">{{item.name}}</view>
+              <view wx:if="{{item.brand || item.spec}}" class="item-meta">{{item.brand || ''}}{{item.brand && item.spec ? ' · ' : ''}}{{item.spec || ''}}</view>
+              <view class="item-meta">
+                <text wx:if="{{item.expiryLabel}}" class="{{item.expiryClass}}">{{item.expiryLabel}} </text><text wx:if="{{item.earliestExpiry}}">{{item.earliestExpiry}} · </text><text>{{item.locText}}</text>
+              </view>
+            </view>
+            <view class="item-side">
+              <text class="stock-num {{item.lowStock ? 'is-low' : ''}}">{{item.stockText}}</text>
+              <text wx:if="{{item.lowStock}}" class="tag-amber stock-tag">{{item.totalQty === 0 ? '待补货' : '库存不足'}}</text>
+            </view>
+            <image class="row-arrow" src="/assets/icons/chevron.svg" />
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
 </view>

@@ -11,16 +11,6 @@
 -- 契约: docs/data-contract.md v1.3「现有表 / RLS 实况」节。
 
 -- ---------------------------------------------------------------------------
--- 0. RLS 辅助函数（所有策略依赖, 必须先建）
--- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.my_household_ids()
-RETURNS SETOF bigint
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $fn$ SELECT household_id FROM public.members WHERE owner_id = auth.uid() $fn$;
-
--- ---------------------------------------------------------------------------
 -- 1. 建表（FK 依赖序: households / items 先行）
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.households (
@@ -121,8 +111,15 @@ ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.records   ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- 4. RLS 策略（9 条, 角色为 PUBLIC; DROP IF EXISTS 保幂等）
+-- 4. RLS 辅助函数和策略（先建依赖 members 的函数，再建策略）
 -- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.my_household_ids()
+RETURNS SETOF bigint
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$ SELECT household_id FROM public.members WHERE owner_id = auth.uid() $fn$;
+
 DROP POLICY IF EXISTS households_select ON public.households;
 CREATE POLICY households_select ON public.households FOR SELECT
   USING ((owner_id = auth.uid()) OR (id IN (SELECT my_household_ids() AS my_household_ids)));

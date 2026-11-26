@@ -1,50 +1,42 @@
-/* 页面独有样式；公共类（center、login、err、card-title、form-row、ipt、f-label、center-hint）已收编至 app.wxss */
+.ipt-flex { flex: 1; min-width: 0; }
+.entry-form { padding-bottom: calc(132rpx + env(safe-area-inset-bottom)); }
+.entry-card { margin-inline: var(--space-4); }
 
-.ipt-flex {
-  flex: 1;
-}
-
-.save-btn {
-  margin-top: var(--space-3);
-  width: 100%;
-}
-
-.barcode-value {
-  color: var(--color-text-2);
-  line-height: 1.4;
-}
-
-.low-stock-hint {
-  padding: 8rpx 0 12rpx;
-  text-align: left;
-}
-
-/* 视觉录入按钮：整行、次要视觉层级 */
-.recognize-btn {
-  width: 100%;
-  margin-bottom: var(--space-3);
-  font-size: var(--font-md);
-  font-weight: 500;
+.entry-head,
+.location-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 12rpx;
 }
-
-.recognize-ico {
-  width: 36rpx;
-  height: 36rpx;
-  flex-shrink: 0;
+.entry-head .card-title { margin: 0; }
+.entry-head .recognize-btn, .form-retry { margin: 0; min-height: 88rpx; padding: 0 16rpx; }
+.recognize-btn { font-size: var(--font-sm); gap: 8rpx; }
+.recognize-ico { width: 32rpx; height: 32rpx; flex-shrink: 0; }
+.recognize-hint,
+.entry-note {
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
+  line-height: 1.45;
+  margin: 8rpx 0 16rpx;
 }
+.entry-save-error, .location-error { color: var(--color-red); line-height: 1.5; margin-bottom: 16rpx; }
+.entry-save-error { margin: 16rpx 0 0; }
 
-.recognize-btn text {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  line-height: 1.4;
+.save-bar {
+  position: fixed;
+  z-index: 5;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  padding: 16rpx var(--space-4) calc(16rpx + env(safe-area-inset-bottom));
+  background: var(--color-card);
+  border-top: 1rpx solid var(--color-border);
 }
+.save-bar button { width: 100%; margin: 0; }
+.center-hint .form-retry { margin: 16rpx auto 0; }
 
-.recognize-hint {
-  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
-  font-size: 22rpx;
-  line-height: 1.5;
-  color: var(--color-text-3);
-  text-align: center;
-}
+.large-text .entry-form { padding-bottom: calc(144rpx + env(safe-area-inset-bottom)); }
+.large-text .entry-card .form-row { align-items: stretch; flex-direction: column; gap: 8rpx; }
+.large-text .entry-card .f-label { text-align: left; width: auto; }

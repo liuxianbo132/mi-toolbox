@@ -1,23 +1,19 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{status === 'scanning'}}" class="center">正在启动扫码…</view>
-
-<view wx:elif="{{status === 'error'}}" class="card center-hint">
-  <image class="scan-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-  <view>{{errorText || '扫码未完成'}}</view>
-  <view wx:if="{{lastCode}}" class="scan-code">已识别：{{lastCode}}</view>
-  <view class="scan-actions">
-    <button size="mini" class="btn-ghost" bindtap="retry">重扫</button>
-    <button size="mini" class="btn-primary" bindtap="goBack">返回</button>
+  <view class="card scan-card">
+    <image class="scan-status-icon" src="/assets/icons/scan.svg" mode="aspectFit" />
+    <view class="card-title scan-title">扫码录入</view>
+    <view wx:if="{{status === 'checking'}}" class="scan-message">正在验证家庭信息…</view>
+    <view wx:elif="{{status === 'scanning'}}" class="scan-message">正在启动扫码…</view>
+    <view wx:elif="{{status === 'searching'}}" class="scan-message">正在查询家庭库存…</view>
+    <view wx:elif="{{status === 'waiting'}}" class="scan-message">相机尚未响应，可重试扫码或手动录入</view>
+    <view wx:elif="{{status === 'signed-out'}}" class="scan-message">登录后即可扫码录入</view>
+    <view wx:elif="{{status === 'no-household'}}" class="scan-message">请先在首页创建或加入家庭</view>
+    <view wx:else class="scan-message">{{errorText || '扫码未完成'}}</view>
+    <view wx:if="{{lastCode}}" class="scan-code">已识别 {{lastCode}}</view>
+    <view class="scan-actions">
+      <button wx:if="{{status === 'waiting' || status === 'error'}}" class="btn-ghost" bindtap="startScan">重试扫码</button>
+      <button wx:if="{{status === 'scanning' || status === 'waiting' || status === 'error'}}" class="btn-primary" bindtap="goManual">手动录入</button>
+      <button wx:if="{{status === 'signed-out' || status === 'no-household'}}" class="btn-primary" bindtap="goBack">返回</button>
+    </view>
   </view>
-</view>
-
-<view wx:elif="{{status === 'no-household'}}" class="card center-hint">
-  <image class="scan-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-  <view>先到「临期看板」创建家庭，或用家人分享的邀请码加入，再回来扫码录入</view>
-  <view class="scan-actions">
-    <button size="mini" class="btn-primary" bindtap="goBack">返回</button>
-  </view>
-</view>
-
-<view wx:else class="center">处理中…</view>
 </view>

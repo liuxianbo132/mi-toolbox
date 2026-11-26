@@ -1,92 +1,118 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+  <view wx:if="{{authState === 'checking'}}" class="center">正在加载家庭用药…</view>
 
-<view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <view class="app-title">小咪工具箱</view>
-  <view class="app-sub">登录后查看家庭用药安排</view>
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-  <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-</view>
-
-<state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="先创建或加入一个家庭，才能记录用药计划" action-text="前往临期看板" bindaction="gohome" />
-
-<state-view wx:elif="{{authState === 'error' || loadState === 'error' && timeline.length === 0 && plans.length === 0}}" icon="/assets/icons/alertCircle-red.svg" title="用药信息暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
-
-<view wx:else class="page">
-  <view class="entry-bar">
-    <view class="entry-link" hover-class="row-hover" bindtap="goallergy">
-      <image class="entry-ico" src="/assets/icons/shield.svg" />
-      <text>过敏档案</text>
-    </view>
-    <view class="entry-link" hover-class="row-hover" bindtap="goadherence">
-      <image class="entry-ico" src="/assets/icons/clock.svg" />
-      <text>依从性报告</text>
-    </view>
+  <view wx:elif="{{authState === 'signed-out'}}" class="card medication-login">
+    <view class="card-title">家庭用药</view>
+    <view class="app-sub">登录后查看家庭用药安排</view>
+    <button class="btn-primary" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
   </view>
 
-  <view wx:if="{{allergyState === 'error'}}" class="allergy-alert">
-    <image class="allergy-ico" src="/assets/icons/alertCircle-red.svg" />
-    <text>{{allergyError}}</text>
-    <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
-  </view>
+  <state-view wx:elif="{{authState === 'no-household'}}" icon="/assets/illustrations/v3/scenes/family.png" illustration="{{true}}" title="还没有加入家庭" desc="创建或加入家庭后，即可记录用药计划" action-text="前往首页" bindaction="gohome" />
 
-  <view class="section-card">
-    <view class="section-head">
-      <view class="section-title">今日用药 · {{todayText}}</view>
+  <state-view wx:elif="{{authState === 'error'}}" icon="/assets/icons/alertCircle-red.svg" title="用药信息暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
+
+  <view wx:else class="medication-page">
+    <view class="medication-heading">
+      <view class="medication-title">今日用药</view>
+      <text class="medication-date">{{todayText}}</text>
     </view>
 
-    <view wx:if="{{loadState === 'loading'}}" class="empty-inline">正在加载今日用药…</view>
-    <view wx:elif="{{loadState === 'error'}}" class="state-inline">
-      <text>今日用药暂时无法加载</text>
-      <button size="mini" class="btn-ghost" bindtap="retryload">重试</button>
-    </view>
-    <view wx:elif="{{timeline.length === 0}}" class="medication-empty">
-      <image class="medication-mascot" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-      <text>今天没有用药安排</text>
+    <view wx:if="{{loadState === 'loading'}}" class="loading-list" aria-label="正在加载今日用药">
+      <view class="loading-line"></view>
+      <view class="loading-line loading-line-short"></view>
     </view>
 
-    <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row">
-      <view class="dose-time">{{d.time}}</view>
-      <view class="dose-main">
-        <view class="dose-name">{{d.itemName}}</view>
-        <view wx:if="{{d.conflictKind}}" class="conflict-line">
-          <image class="conflict-ico" src="{{d.conflictKind === 'forbidden' ? '/assets/icons/alertCircle-red.svg' : '/assets/icons/alertCircle.svg'}}" aria-label="{{d.conflictKind === 'forbidden' ? '禁用警告' : '注意提示' }}" />
-          <text class="{{d.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{d.conflictLabel}}</text>
+    <state-view wx:elif="{{loadState === 'error'}}" icon="/assets/icons/alertCircle-red.svg" title="用药安排暂时无法加载" desc="{{loadError}}" action-text="重新加载" bindaction="retryload" />
+
+    <block wx:else>
+      <view wx:if="{{timeline.length}}" class="task-progress">
+        <view class="progress-header">
+          <text class="progress-count">已确认 {{progress.taken}} / {{timeline.length}}</text>
+          <text class="progress-pending">{{progress.pending}} 项待确认</text>
         </view>
-        <view class="dose-meta" wx:if="{{d.memberName}}">服药人：{{d.memberName}}</view>
+        <progress class="progress-track" percent="{{progress.percent}}" stroke-width="5" activeColor="#0062CC" backgroundColor="#E5E5EA" />
+        <text wx:if="{{progress.missed}}" class="progress-missed">{{progress.missed}} 项标记漏服</text>
       </view>
-      <view class="dose-side">
-        <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
-        <button wx:if="{{d.canConfirm}}" size="mini" class="btn-primary dose-btn" loading="{{doseBusy}}" disabled="{{doseBusy}}" data-id="{{d.id}}" bindtap="confirmDose" aria-label="确认 {{d.itemName}} 已服用">确认已服</button>
-        <text wx:elif="{{d.status === 'pending' && d.conflictForbid}}" class="dose-forbid-text" aria-label="禁用药物，不可打卡">禁用 · 不可打卡</text>
-        <button wx:if="{{d.canCorrect}}" size="mini" class="btn-ghost dose-btn" data-id="{{d.id}}" bindtap="correctDose" aria-label="更正 {{d.itemName}} 的打卡记录">更正</button>
+
+      <view wx:if="{{allergyState === 'error'}}" class="allergy-alert">
+        <view>过敏记录暂时无法核对，待确认的打卡已暂停。</view>
+        <button class="btn-ghost medication-control" bindtap="retryload">重试</button>
       </view>
-    </view>
-  </view>
 
-  <view class="section-card">
-    <view class="section-head">
-      <view class="section-title">用药计划（{{plans.length}}）</view>
-      <button size="mini" class="btn-primary" hover-class="button-hover" bindtap="goNewPlan">新建计划</button>
-    </view>
-
-    <view wx:if="{{loadState === 'ready' && plans.length === 0}}" class="empty-inline">还没有用药计划，点右上角新建</view>
-    <view wx:for="{{plans}}" wx:for-item="p" wx:key="id" class="plan-row" hover-class="row-hover" data-id="{{p.id}}" data-status="{{p.status}}" bindtap="goEditPlan">
-      <view class="plan-main">
-        <view class="plan-name">{{p.itemName}}</view>
-        <view wx:if="{{p.conflictKind}}" class="conflict-line">
-          <image class="conflict-ico" src="{{p.conflictKind === 'forbidden' ? '/assets/icons/alertCircle-red.svg' : '/assets/icons/alertCircle.svg'}}" aria-label="{{p.conflictKind === 'forbidden' ? '禁用警告' : '注意提示' }}" />
-          <text class="{{p.conflictKind === 'forbidden' ? 'tag-red' : 'tag-amber'}}">{{p.conflictLabel}}</text>
+      <view wx:if="{{timeline.length}}" class="medication-group">
+        <view wx:for="{{timeline}}" wx:for-item="d" wx:key="id" class="dose-row {{d.status === 'taken' ? 'dose-done' : ''}}">
+          <text class="dose-time">{{d.time}}</text>
+          <view class="dose-main">
+            <view class="medication-name-line"><image class="medication-item-illu" src="{{d.itemIllu}}" mode="aspectFit" aria-hidden="true" /><text class="dose-name">{{d.itemName}}</text></view>
+            <view class="dose-meta">{{d.memberName}}</view>
+            <view wx:if="{{d.status === 'pending' && d.cannotConfirm}}" class="dose-meta">{{d.cannotConfirm}}</view>
+            <view wx:if="{{d.status === 'pending' && d.conflictKind}}" class="conflict-line {{d.conflictKind === 'forbidden' ? 'conflict-forbidden' : ''}}">
+              <image class="conflict-ico" src="{{d.conflictKind === 'forbidden' ? '/assets/icons/alertCircle-red.svg' : '/assets/icons/alertCircle.svg'}}" mode="aspectFit" aria-hidden="true" />
+              <text>{{d.conflictLabel}}</text>
+            </view>
+          </view>
+          <view class="dose-side">
+            <text class="{{d.statusClass}}">{{d.statusLabel}}</text>
+            <button wx:if="{{d.canConfirm}}" class="btn-primary medication-control" loading="{{doseBusyId === d.id}}" disabled="{{doseBusyId !== null}}" data-id="{{d.id}}" bindtap="confirmDose" aria-label="确认 {{d.memberName}} 已服用 {{d.itemName}}">确认已服</button>
+            <text wx:elif="{{d.status === 'pending' && d.conflictKind === 'forbidden'}}" class="conflict-forbidden">不可打卡</text>
+            <button wx:if="{{d.canCorrect}}" class="btn-ghost medication-control" loading="{{doseBusyId === d.id}}" disabled="{{doseBusyId !== null}}" data-id="{{d.id}}" bindtap="correctDose" aria-label="更正 {{d.memberName}} 的 {{d.itemName}} 打卡记录">更正</button>
+          </view>
         </view>
-        <view class="plan-meta">{{p.freqLabel}} · {{p.timesText}}</view>
-        <view class="plan-meta" wx:if="{{p.memberName}}">服药人：{{p.memberName}}</view>
-        <view class="plan-meta">{{p.courseText}}</view>
       </view>
-      <view class="plan-side">
-        <text class="{{p.status === 'active' ? 'tag-green' : 'tag-amber'}}">{{p.statusLabel}}</text>
-        <button wx:if="{{p.canEdit}}" size="mini" class="btn-ghost" loading="{{planBusy}}" disabled="{{planBusy}}" data-id="{{p.id}}" catchtap="cancelPlan">取消计划</button>
+
+      <view wx:else class="medication-group medication-empty">
+        <image class="medication-empty-icon" src="/assets/illustrations/v3/scenes/medication.png" mode="aspectFit" aria-hidden="true" />
+        <text>今天没有用药安排</text>
       </view>
-    </view>
+
+      <view class="medication-section">
+        <view class="section-head">
+          <text class="section-title">用药计划</text>
+          <button class="btn-ghost medication-control" bindtap="goNewPlan">新建计划</button>
+        </view>
+        <view class="medication-group">
+          <view wx:if="{{!activePlans.length}}" class="empty-inline">暂无进行中的计划</view>
+          <view wx:for="{{activePlans}}" wx:for-item="p" wx:key="id" class="plan-row">
+            <view class="plan-main">
+              <view class="medication-name-line"><image class="medication-item-illu" src="{{p.itemIllu}}" mode="aspectFit" aria-hidden="true" /><text class="plan-name">{{p.itemName}}</text></view>
+              <view wx:if="{{p.conflictKind}}" class="conflict-line {{p.conflictKind === 'forbidden' ? 'conflict-forbidden' : ''}}">{{p.conflictLabel}}</view>
+              <view class="plan-meta">{{p.memberName}} · {{p.freqLabel}} {{p.timesText}}</view>
+              <view class="plan-meta">{{p.courseText}}</view>
+            </view>
+            <button class="btn-ghost medication-control" disabled="{{planBusy}}" data-id="{{p.id}}" bindtap="openPlanActions" aria-label="管理 {{p.memberName}} 的 {{p.itemName}} 计划">管理</button>
+          </view>
+          <button wx:if="{{historyPlans.length}}" class="medication-link history-link" bindtap="toggleHistory" aria-expanded="{{showHistory}}">
+            {{showHistory ? '收起' : '查看'}}历史计划（{{historyPlans.length}}）
+          </button>
+          <block wx:if="{{showHistory}}">
+            <view wx:for="{{historyPlans}}" wx:for-item="p" wx:key="id" class="plan-row">
+              <view class="plan-main">
+                <view class="medication-name-line"><image class="medication-item-illu" src="{{p.itemIllu}}" mode="aspectFit" aria-hidden="true" /><text class="plan-name">{{p.itemName}}</text></view>
+                <view class="plan-meta">{{p.memberName}} · {{p.courseText}}</view>
+              </view>
+              <text class="plan-status" wx:if="{{!p.canManage}}">{{p.statusLabel}}</text>
+              <view wx:else class="dose-side">
+                <text class="plan-status">{{p.statusLabel}}</text>
+                <button class="btn-ghost medication-control" disabled="{{planBusy}}" data-id="{{p.id}}" bindtap="openPlanActions" aria-label="管理 {{p.memberName}} 的 {{p.itemName}} 历史计划">管理</button>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <view class="medication-group medication-section">
+        <button class="medication-link" bindtap="goallergy" hover-class="row-hover">
+          <image class="medication-link-icon" src="/assets/icons/shield.svg" mode="aspectFit" aria-hidden="true" />
+          <text>过敏档案</text>
+          <image class="medication-chevron" src="/assets/icons/chevron.svg" mode="aspectFit" aria-hidden="true" />
+        </button>
+        <button class="medication-link" bindtap="goadherence" hover-class="row-hover">
+          <image class="medication-link-icon" src="/assets/icons/clock.svg" mode="aspectFit" aria-hidden="true" />
+          <text>依从性报告</text>
+          <image class="medication-chevron" src="/assets/icons/chevron.svg" mode="aspectFit" aria-hidden="true" />
+        </button>
+      </view>
+    </block>
   </view>
-</view>
 </view>

@@ -1,108 +1,109 @@
-<view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
-
-<block wx:elif="{{authState === 'signed-out'}}">
-  <view class="card login-card">
-    <image class="brand-mark" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-    <view class="app-title">小咪工具箱</view>
-    <view class="app-sub">登录后管理家庭物品与用药</view>
-    <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
-    <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
-  </view>
-  <view class="card preference-card">
-    <view class="preference-copy">
+<template name="large-text-setting">
+  <view class="setting-row preference-row">
+    <view class="setting-main">
       <view class="preference-title">大字模式</view>
-      <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
+      <view class="preference-hint">放大文字和按钮 · 仅此设备</view>
     </view>
-    <switch checked="{{largeText}}" color="#0062CC" bindchange="onlargetextchange" />
+    <switch checked="{{largeText}}" color="#0062CC" aria-label="大字模式" bindchange="onlargetextchange" />
   </view>
-</block>
+</template>
 
-<state-view wx:elif="{{householdError}}" icon="/assets/icons/alertCircle-red.svg" title="家庭信息暂时无法加载" desc="{{householdError}}" action-text="重新加载" bindaction="retryprofile" />
+<view class="page-root {{largeText ? 'large-text' : ''}}">
+  <view wx:if="{{authState === 'checking'}}" class="center">正在读取家庭空间…</view>
 
-<view wx:else class="page">
-  <view class="card profile-head">
-    <image class="profile-mark" src="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" mode="aspectFit" />
-    <view class="profile-copy">
-      <view class="profile-title">我的</view>
-      <view class="profile-sub">{{household ? household.name : '尚未加入家庭'}}</view>
+  <block wx:elif="{{authState === 'signed-out'}}">
+    <view class="card login-card">
+      <view class="app-title">我的</view>
+      <view class="app-sub">登录后管理家庭与个人设置</view>
+      <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onwechatlogin">微信一键登录</button>
+      <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
     </view>
-  </view>
-
-  <state-view wx:if="{{!household}}" icon="/assets/illustrations/v3-ref/mascot/xiaomi-original-inventory-full.png" title="还没有加入家庭" desc="创建或加入家庭后，才能与家人共享库存、用药和成员信息" action-text="前往临期看板" bindaction="gohome" />
-
-  <block wx:else>
-    <view class="card">
-      <view class="card-title">家庭信息</view>
-      <view class="row nickname-row">
-        <text class="label">昵称</text>
-        <input class="ipt" value="{{nicknameInput}}" bindinput="onnicknameinput" maxlength="12" placeholder="设置家庭内昵称" />
-        <button size="mini" class="btn-primary" loading="{{nicknameBusy}}" disabled="{{nicknameBusy}}" bindtap="savenickname">保存</button>
-      </view>
-      <view class="row">
-        <text class="label">家庭</text><text>{{household.name}}</text>
-      </view>
-      <button class="copy-code" hover-class="row-hover" bindtap="copyInviteCode">
-        <text>邀请码</text>
-        <text class="code">{{household.invite_code}}</text>
-        <text class="copy-hint">点按复制</text>
-      </button>
-    </view>
-
-    <view class="card">
-      <view class="card-title">家庭成员（{{members.length}}）</view>
-      <view wx:if="{{membersError}}" class="state-inline">
-        <text>成员信息暂时无法加载</text>
-        <button size="mini" class="btn-ghost" bindtap="retrymembers">重试</button>
-      </view>
-      <block wx:else>
-        <view wx:for="{{members}}" wx:for-item="m" wx:key="id" class="member-row">
-          <view class="member-info">
-            <view class="member-name">
-              {{m.nameText}}
-              <text wx:if="{{m.isSelf}}" class="self-tag">我</text>
-            </view>
-            <view class="member-meta">{{m.roleLabel}}{{m.joinedText ? ' · ' + m.joinedText + ' 加入' : ''}}</view>
-          </view>
-          <view class="member-actions">
-            <button wx:if="{{m.isSelf || isOwner}}" size="mini" class="btn-ghost" data-id="{{m.id}}" data-name="{{m.nameText}}" bindtap="goallergy">过敏</button>
-            <button wx:if="{{m.canRemove}}" size="mini" class="btn-ghost" disabled="{{memberBusy}}" data-id="{{m.id}}" bindtap="onRemoveMember">移除</button>
-            <button wx:if="{{m.canLeave}}" size="mini" class="btn-danger" disabled="{{memberBusy}}" bindtap="onLeaveHousehold">退出家庭</button>
-          </view>
-        </view>
-        <view wx:if="{{members.length === 0}}" class="member-empty">暂无成员数据</view>
-      </block>
+    <view class="settings-group">
+      <template is="large-text-setting" data="{{largeText: largeText}}" />
     </view>
   </block>
 
-  <view class="card preference-card">
-    <view class="preference-copy">
-      <view class="preference-title">大字模式</view>
-      <view class="preference-hint">放大常用文字和按钮，设置会保存在本机</view>
-    </view>
-    <switch checked="{{largeText}}" color="#0062CC" bindchange="onlargetextchange" />
-  </view>
+  <state-view wx:elif="{{householdError}}" icon="/assets/icons/alertCircle-red.svg" title="{{householdErrorTitle}}" desc="{{householdError}}" action-text="重新加载" bindaction="retryprofile" />
 
-  <view class="card">
-    <view class="card-title">数据与管理</view>
-    <view wx:if="{{household}}" class="export-actions">
-      <button class="btn-ghost" loading="{{exportBusy}}" disabled="{{exportBusy}}" bindtap="onexportjson">导出 JSON</button>
-      <button class="btn-ghost" loading="{{exportBusy}}" disabled="{{exportBusy}}" bindtap="onexportcsv">导出 CSV</button>
+  <view wx:else class="profile">
+    <view class="profile-head">
+      <image class="profile-mark" src="/assets/illustrations/v3/mascot/avatar.png" mode="aspectFit" aria-hidden="true" />
+      <view class="profile-copy">
+        <view class="profile-title">{{displayName}}</view>
+        <view class="profile-sub">{{household ? household.name : '尚未加入家庭'}}</view>
+      </view>
     </view>
-    <view wx:if="{{lastExportPath}}" class="export-actions">
-      <button class="btn-ghost" disabled="{{exportBusy}}" bindtap="resharelast">重新分享上次文件</button>
-    </view>
-    <view class="hint-sm export-hint">JSON 完整留档，CSV 可用 Excel 打开；分享取消后仍可重发</view>
-    <view class="entry-row" hover-class="row-hover" bindtap="gotrash">
-      <text>回收站</text><text class="entry-arrow">›</text>
-    </view>
-    <view class="entry-row" hover-class="row-hover" bindtap="gorecords">
-      <text>操作记录</text><text class="entry-arrow">›</text>
-    </view>
-  </view>
 
-  <view class="card signout-card">
-    <button class="btn-danger" loading="{{signOutBusy}}" disabled="{{signOutBusy}}" bindtap="onsignout">退出登录</button>
+    <view wx:if="{{household}}" class="settings-section">
+      <view class="group-title">家庭空间</view>
+      <view class="settings-group">
+        <view class="setting-row nickname-row">
+          <view class="setting-main">
+            <view class="setting-title">家庭昵称</view>
+            <input class="ipt nickname-input" value="{{nicknameInput}}" aria-label="家庭昵称" bindinput="onnicknameinput" maxlength="12" placeholder="设置家庭内昵称" disabled="{{nicknameBusy}}" />
+          </view>
+          <button size="mini" class="btn-ghost" loading="{{nicknameBusy}}" disabled="{{nicknameBusy || !nicknameDirty}}" bindtap="savenickname">保存</button>
+        </view>
+        <button wx:if="{{household.invite_code}}" class="setting-row setting-button" hover-class="row-hover" bindtap="copyinvitecode">
+          <text class="setting-title">复制邀请码</text>
+          <text class="setting-detail code">{{household.invite_code}}</text>
+        </button>
+        <button class="setting-row setting-button" hover-class="row-hover" bindtap="togglemembers">
+          <text class="setting-title">家庭成员</text>
+          <text wx:if="{{!membersError && !membersLoading}}" class="setting-detail">{{members.length}} 人</text>
+          <text class="entry-arrow {{membersExpanded ? 'arrow-open' : ''}}">›</text>
+        </button>
+        <block wx:if="{{membersExpanded}}">
+          <view wx:if="{{membersLoading}}" class="setting-row">正在读取成员信息…</view>
+          <view wx:elif="{{membersError}}" class="setting-row">
+            <text class="setting-main">成员信息暂时无法加载</text>
+            <button size="mini" class="btn-ghost" bindtap="retrymembers">重试</button>
+          </view>
+          <view wx:for="{{members}}" wx:for-item="m" wx:key="id" class="setting-row member-row">
+            <view class="setting-main">
+              <view class="member-name">{{m.nameText}}<text wx:if="{{m.isSelf}}" class="self-tag">我</text></view>
+              <view class="member-meta">{{m.roleLabel}}{{m.joinedText ? ' · ' + m.joinedText + ' 加入' : ''}}</view>
+            </view>
+            <button wx:if="{{m.canRemove}}" size="mini" class="btn-ghost member-button" disabled="{{memberBusy}}" data-id="{{m.id}}" data-name="{{m.nameText}}" bindtap="onmembermenu">成员操作</button>
+            <button wx:elif="{{m.isSelf || isOwner}}" size="mini" class="btn-ghost member-button" data-id="{{m.id}}" data-name="{{m.nameText}}" bindtap="goallergy">过敏档案</button>
+          </view>
+          <view wx:if="{{!membersLoading && !membersError && !members.length}}" class="setting-row">暂无成员数据</view>
+        </block>
+      </view>
+    </view>
+    <state-view wx:else icon="/assets/illustrations/v3/scenes/family.png" illustration="{{true}}" title="还没有加入家庭" desc="创建或加入家庭后，可以和家人共享库存与用药记录" action-text="前往首页" bindaction="gohome" />
+
+    <view wx:if="{{household}}" class="settings-section">
+      <view class="group-title">常用记录</view>
+      <view class="settings-group">
+        <button class="setting-row setting-button" hover-class="row-hover" bindtap="gorecords">
+          <text class="setting-title">操作记录</text><text class="entry-arrow">›</text>
+        </button>
+        <button class="setting-row setting-button" hover-class="row-hover" bindtap="gotrash">
+          <text class="setting-title">回收站</text><text class="entry-arrow">›</text>
+        </button>
+      </view>
+    </view>
+
+    <view class="settings-section">
+      <view class="group-title">偏好与数据</view>
+      <view class="settings-group">
+        <template is="large-text-setting" data="{{largeText: largeText}}" />
+        <button wx:if="{{household}}" class="setting-row setting-button" loading="{{exportBusy}}" disabled="{{exportBusy}}" hover-class="row-hover" bindtap="chooseexport">
+          <text class="setting-title">导出数据</text><text class="setting-detail">JSON / CSV</text><text class="entry-arrow">›</text>
+        </button>
+        <button wx:if="{{lastExportName}}" class="setting-row setting-button" disabled="{{exportBusy}}" hover-class="row-hover" bindtap="resharelast">
+          <text class="setting-title">重新分享上次文件</text><text class="entry-arrow">›</text>
+        </button>
+      </view>
+    </view>
+
+    <view class="settings-section">
+      <view class="group-title">账号</view>
+      <view class="settings-group">
+        <button wx:if="{{canLeave}}" class="setting-row setting-button danger-row" disabled="{{memberBusy || exportBusy}}" hover-class="row-hover" bindtap="onleavehousehold">退出家庭</button>
+        <button class="setting-row setting-button danger-row" loading="{{signOutBusy}}" disabled="{{signOutBusy || exportBusy || memberBusy}}" hover-class="row-hover" bindtap="onsignout">退出登录</button>
+      </view>
+    </view>
   </view>
-</view>
 </view>

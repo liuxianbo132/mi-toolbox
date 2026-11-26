@@ -1,5 +1,4 @@
 const { cloud } = require('../../utils/cloud')
-const { itemsAccess, batchesAccess } = require('../../utils/data-access')
 const { categoryLabel } = require('../../utils/constants')
 
 // 回收站（契约 v2.0 软删除）：物品组整体恢复 / 批次单条恢复；彻底删除走物理 DELETE
@@ -25,14 +24,16 @@ function expiryRow(expiry) {
   const s = expiry ? String(expiry).slice(0, 10) : ''
   if (!s) return { expiryText: '无到期日', expired: false }
   const parts = s.split('-')
-  const text = parts.length === 3 ? Number(parts[1]) + '-' + parts[2] : s
+  const text = '到期 ' + (parts.length === 3 ? Number(parts[1]) + '-' + parts[2] : s)
   return { expiryText: text, expired: s < todayKey() }
 }
 
 Page({
   data: {
     largeText: false,
-    authState: 'checking', // checking | signed-out | no-household | ready
+    authState: 'checking',
+    contentState: 'loading',
+    contentLimited: false,
     householdId: null,
     itemRows: [],
     batchRows: [],
@@ -45,263 +46,132 @@ Page({
   },
 
   async restore() {
-    this.setData({ authState: 'checking' })
+    const request = (this.loadRequest || 0) + 1
+    this.loadRequest = request
+    this.setData({ authState: 'checking', householdId: null, itemRows: [], batchRows: [] })
     try {
       const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
-        this.setData({ authState: 'signed-out', householdId: null, itemRows: [], batchRows: [] })
+      if (request !== this.loadRequest) return
+      if (error) throw error
+      const uid = session && session.user && session.user.id
+      if (!uid) {
+        this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadHousehold()
+      const membership = await cloud.database.from('members').select('household_id').eq('owner_id', uid).limit(1)
+      if (request !== this.loadRequest) return
+      if (membership.error) throw membership.error
+      const row = membership.data && membership.data[0]
+      if (!row) {
+        this.setData({ authState: 'no-household' })
+        return
+      }
+      this.setData({ authState: 'ready', contentState: 'loading', householdId: row.household_id })
+      await this.loadTrash(row.household_id)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      if (request === this.loadRequest) this.setData({ authState: 'error' })
     }
   },
 
-  // session → members 取本人 household_id（与 profile.js 查法一致）
-  async loadHousehold() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
-    if (!uid) {
-      this.setData({ authState: 'signed-out' })
-      return
-    }
-    const { data: mine } = await cloud.database
-      .from('members')
-      .select('household_id')
-      .eq('owner_id', uid)
-      .limit(1)
-    const row = mine && mine[0]
-    if (!row) {
-      this.setData({ authState: 'no-household', householdId: null, itemRows: [], batchRows: [] })
-      return
-    }
-    this.setData({ authState: 'ready', householdId: row.household_id })
-    await this.loadTrash(row.household_id)
-  },
+  retrytrash() { this.restore() },
 
   async loadTrash(hid) {
     if (!hid) return
-    const itemRes = await cloud.database
-      .from('items')
-      .select('id, name, category, deleted_at')
-      .eq('household_id', hid)
-      .eq('is_deleted', true)
-      .order('deleted_at', { ascending: false })
-      .limit(200)
-    if (itemRes.error) {
-      wx.showToast({ title: itemRes.error.message, icon: 'none' })
-      return
+    const request = this.loadRequest
+    this.setData({ contentState: 'loading' })
+    try {
+      const [itemRes, batchRes] = await Promise.all([
+        cloud.database.from('items').select('id, name, category, deleted_at')
+          .eq('household_id', hid).eq('is_deleted', true)
+          .order('deleted_at', { ascending: false }).limit(201),
+        cloud.database.from('batches').select('id, expiry_date, deleted_at, items(name, is_deleted)')
+          .eq('household_id', hid).eq('is_deleted', true)
+          .order('deleted_at', { ascending: false }).limit(501),
+      ])
+      if (request !== this.loadRequest) return
+      if (itemRes.error || batchRes.error) throw itemRes.error || batchRes.error
+      const items = itemRes.data || []
+      const batches = batchRes.data || []
+      const itemRows = items.slice(0, 200).map((item) => ({
+        id: item.id,
+        name: item.name || '未命名物品',
+        categoryText: categoryLabel(item.category),
+        deletedText: formatDeleted(item.deleted_at),
+      }))
+      // 物品尚在回收站时，关联批次随物品恢复。
+      const batchRows = batches.slice(0, 500)
+        .filter((batch) => batch.items && !batch.items.is_deleted)
+        .map((batch) => ({
+          id: batch.id,
+          itemName: batch.items.name || '未命名物品',
+          ...expiryRow(batch.expiry_date),
+          deletedText: formatDeleted(batch.deleted_at),
+        }))
+      this.setData({ itemRows, batchRows, contentState: 'ready', contentLimited: items.length > 200 || batches.length > 500 })
+    } catch (error) {
+      if (request === this.loadRequest) this.setData({ contentState: 'error' })
     }
-    const batchRes = await cloud.database
-      .from('batches')
-      .select('id, item_id, expiry_date, quantity, unit, deleted_at')
-      .eq('household_id', hid)
-      .eq('is_deleted', true)
-      .order('deleted_at', { ascending: false })
-      .limit(500)
-    if (batchRes.error) {
-      wx.showToast({ title: batchRes.error.message, icon: 'none' })
-      return
-    }
-    // 名称映射不过滤 is_deleted：给批次行显示所属物品名（含已删物品）
-    const nameRes = await cloud.database
-      .from('items')
-      .select('id, name')
-      .eq('household_id', hid)
-      .limit(500)
-    const deletedItems = itemRes.data || []
-    const deletedIds = {}
-    const itemRows = deletedItems.map(function (it) {
-      const key = String(it.id)
-      deletedIds[key] = true
-      return {
-        id: it.id,
-        name: it.name || '未命名物品',
-        categoryText: categoryLabel(it.category),
-        deletedText: formatDeleted(it.deleted_at),
-      }
-    })
-    const nameMap = {}
-    ;(nameRes.data || []).forEach(function (it) {
-      nameMap[String(it.id)] = it.name || '未命名物品'
-    })
-    // 所属物品也被软删的批次不单列：用户从物品组整体恢复，避免恢复出孤儿批次
-    const batchRows = []
-    ;(batchRes.data || []).forEach(function (b) {
-      const key = String(b.item_id)
-      if (!nameMap[key] || deletedIds[key]) return
-      const exp = expiryRow(b.expiry_date)
-      batchRows.push({
-        id: b.id,
-        itemName: nameMap[key],
-        expiryText: exp.expiryText,
-        expired: exp.expired,
-        deletedText: formatDeleted(b.deleted_at),
-      })
-    })
-    this.setData({ itemRows: itemRows, batchRows: batchRows })
   },
 
   canAct(id) {
-    if (this.data.busy) return false
+    if (this.data.busy || this.data.contentState !== 'ready' || !this.data.householdId) return false
     return id !== undefined && id !== null && id !== ''
   },
 
-  // 恢复物品：只写 is_deleted=false（deleted_at 不参与判断，SDK 会丢弃 null）
-  // 成功后级联恢复该物品下全部软删批次，单条失败不中断，最后按失败条数提示
-  async onrestoreitem(e) {
-    const id = e.currentTarget.dataset.id
-    if (!this.canAct(id)) return
-    this.setData({ busy: true })
-    wx.showLoading({ title: '恢复中', mask: true })
-    let title = '已恢复'
-    let icon = 'success'
-    try {
-      const res = await itemsAccess.update(id, { is_deleted: false })
-      if (res.error || !res.data) {
-        title = (res.error && res.error.message) || '恢复失败'
-        icon = 'none'
-      } else {
-        const hid = this.data.householdId
-        const { data: rows } = await cloud.database
-          .from('batches')
-          .select('id')
-          .eq('household_id', hid)
-          .eq('item_id', id)
-          .eq('is_deleted', true)
-          .limit(500)
-        const list = rows || []
-        let failed = 0
-        for (let i = 0; i < list.length; i++) {
-          const r = await batchesAccess.update(list[i].id, { is_deleted: false })
-          if (r.error || !r.data) failed++
-        }
-        if (failed > 0) {
-          title = '已恢复物品，' + failed + ' 条批次未成功'
-          icon = 'none'
-        }
-      }
-    } catch (err) {
-      title = '恢复失败'
-      icon = 'none'
-    }
-    wx.hideLoading()
-    wx.showToast({ title: title, icon: icon })
-    this.setData({ busy: false })
-    await this.loadTrash(this.data.householdId)
-  },
+  onrestoreitem(e) { return this.applyTrashAction(e.currentTarget.dataset.id, 'item', false) },
+  onrestorebatch(e) { return this.applyTrashAction(e.currentTarget.dataset.id, 'batch', false) },
+  onpurgeitem(e) { this.confirmPurge(e.currentTarget.dataset.id, 'item') },
+  onpurgebatch(e) { this.confirmPurge(e.currentTarget.dataset.id, 'batch') },
 
-  async onrestorebatch(e) {
-    const id = e.currentTarget.dataset.id
+  confirmPurge(id, type) {
     if (!this.canAct(id)) return
-    this.setData({ busy: true })
-    wx.showLoading({ title: '恢复中', mask: true })
-    let title = '已恢复'
-    let icon = 'success'
-    try {
-      const res = await batchesAccess.update(id, { is_deleted: false })
-      if (res.error || !res.data) {
-        title = (res.error && res.error.message) || '恢复失败'
-        icon = 'none'
-      }
-    } catch (err) {
-      title = '恢复失败'
-      icon = 'none'
-    }
-    wx.hideLoading()
-    wx.showToast({ title: title, icon: icon })
-    this.setData({ busy: false })
-    await this.loadTrash(this.data.householdId)
-  },
-
-  // 彻底删除物品：二次确认 → 物理删除该物品的全部批次（含已软删）→ 再删物品
-  onpurgeitem(e) {
-    const id = e.currentTarget.dataset.id
-    if (!this.canAct(id)) return
-    const that = this
+    const request = this.loadRequest
     wx.showModal({
       title: '彻底删除',
-      content: '将永久删除该物品及其全部批次，彻底删除后不可恢复',
-      confirmColor: '#A32D2D',
-      success(res) {
-        if (!res.confirm) return
-        that.purgeItem(id)
+      content: type === 'item'
+        ? '将永久删除这件物品及其全部批次。此操作无法撤销。'
+        : '将永久删除这个批次。此操作无法撤销。',
+      confirmText: '彻底删除',
+      confirmColor: '#C4271E',
+      success: (res) => {
+        if (res.confirm && this.loadRequest === request) this.applyTrashAction(id, type, true)
       },
     })
   },
 
-  async purgeItem(id) {
-    if (this.data.busy) return
-    this.setData({ busy: true })
-    wx.showLoading({ title: '删除中', mask: true })
-    let title = '已彻底删除'
-    let icon = 'success'
-    try {
-      const { data: rows } = await cloud.database
-        .from('batches')
-        .select('id')
-        .eq('household_id', this.data.householdId)
-        .eq('item_id', id)
-        .limit(1000)
-      const list = rows || []
-      let failed = 0
-      for (let i = 0; i < list.length; i++) {
-        const r = await batchesAccess.remove(list[i].id)
-        if (r.error || !r.data) failed++
-      }
-      const res = await itemsAccess.remove(id)
-      if (res.error || !res.data) {
-        title = (res.error && res.error.message) || '删除失败'
-        icon = 'none'
-      } else if (failed > 0) {
-        title = '物品已删除，' + failed + ' 条批次未删除'
-        icon = 'none'
-      }
-    } catch (err) {
-      title = '删除失败'
-      icon = 'none'
-    }
-    wx.hideLoading()
-    wx.showToast({ title: title, icon: icon })
-    this.setData({ busy: false })
-    await this.loadTrash(this.data.householdId)
-  },
-
-  onpurgebatch(e) {
-    const id = e.currentTarget.dataset.id
+  async applyTrashAction(id, type, purge) {
     if (!this.canAct(id)) return
-    const that = this
-    wx.showModal({
-      title: '彻底删除',
-      content: '彻底删除后不可恢复',
-      confirmColor: '#A32D2D',
-      success(res) {
-        if (!res.confirm) return
-        that.purgeBatch(id)
-      },
-    })
-  },
-
-  async purgeBatch(id) {
-    if (this.data.busy) return
+    const request = this.loadRequest
+    const verb = purge ? '彻底删除' : '恢复'
     this.setData({ busy: true })
-    wx.showLoading({ title: '删除中', mask: true })
-    let title = '已彻底删除'
+    wx.showLoading({ title: verb + '中…', mask: true })
+    let title = '已' + verb
     let icon = 'success'
     try {
-      const res = await batchesAccess.remove(id)
-      if (res.error || !res.data) {
-        title = (res.error && res.error.message) || '删除失败'
-        icon = 'none'
+      const args = {
+        p_item_id: type === 'item' ? id : null,
+        p_batch_id: type === 'batch' ? id : null,
       }
-    } catch (err) {
-      title = '删除失败'
+      if (!purge) args.p_deleted = false
+      const { data, error } = await cloud.database.rpc(purge ? 'purge_stock_deleted' : 'set_stock_deleted', args)
+      if (error || data !== 'ok') {
+        const messages = {
+          inactive_item: '请先恢复所属物品',
+          not_found: '记录已变化，请刷新',
+          not_in_trash: '记录已恢复，请刷新',
+          referenced: '物品有关联的用药数据，无法彻底删除',
+        }
+        throw new Error(messages[data] || verb + '失败，请重试')
+      }
+    } catch (error) {
+      title = error.message || verb + '失败，请重试'
       icon = 'none'
+    } finally {
+      wx.hideLoading()
+      this.setData({ busy: false })
     }
-    wx.hideLoading()
-    wx.showToast({ title: title, icon: icon })
-    this.setData({ busy: false })
+    if (this.loadRequest !== request) return
+    wx.showToast({ title, icon })
     await this.loadTrash(this.data.householdId)
   },
 })

@@ -3,17 +3,10 @@ const { itemsAccess, batchesAccess, drugLinksAccess, logRecord } = require('../.
 const { CATEGORIES, categoryLabel, categoryIllustration, itemIllustration } = require('../../utils/constants')
 const { daysUntil, urgencyLevel, effectiveExpiry } = require('../../utils/date')
 const { matchAllergies, hitsText, KIND_LABEL } = require('../../utils/allergy')
+const { parseOptionalDaysOrCount } = require('../../utils/inventory-fields')
 
 // 契约：batches.status('active'|'used'|'discarded')
 const BATCH_STATUS_LABEL = { active: '在库', used: '已用完', discarded: '已报废' }
-
-function parseLowStockThreshold(value) {
-  const raw = String(value == null ? '' : value).trim()
-  if (!raw) return 0
-  if (!/^\d+$/.test(raw)) return null
-  const n = Number(raw)
-  return n >= 0 && n <= 999 ? n : null
-}
 
 Page({
   data: {
@@ -28,6 +21,8 @@ Page({
     batchState: 'idle', // idle | loading | ready | error
     batchError: '',
     batchBusy: false,
+    stockDeleting: false,
+    batchesLimited: false,
     categoryOptions: CATEGORIES.map(function (category) {
       return Object.assign({}, category, { illustration: categoryIllustration(category.value) })
     }),
@@ -40,6 +35,7 @@ Page({
     editBrand: '',
     editSpec: '',
     editLowStockThreshold: '',
+    editPaoDays: '',
     // 新增批次
     addingBatch: false,
     addSaving: false,
@@ -90,13 +86,21 @@ Page({
 
   async loadAll() {
     this.setData({ loading: true, loadState: 'loading', batchState: 'loading', loadError: '', batchError: '' })
+    try {
+      await this.loadItemDetails()
+    } catch (error) {
+      this.setData({ loading: false, loadState: 'error', loadError: '物品信息暂时无法加载，请重试' })
+    }
+  },
+
+  async loadItemDetails() {
     const { data: itemRows, error } = await cloud.database
       .from('items')
       .select('id, household_id, name, category, unit, brand, spec, pao_days, low_stock_threshold')
       .eq('id', this.data.itemId)
       .eq('is_deleted', false)
       .limit(1)
-    if (error) {
+    if (error || !Array.isArray(itemRows)) {
       this.setData({
         loading: false,
         loadState: 'error',
@@ -117,27 +121,22 @@ Page({
       })
       return
     }
-    const { data: batchRows, error: batchError } = await cloud.database
-      .from('batches')
-      .select('id, item_id, expiry_date, opened_at, quantity, unit, status, location_id')
-      .eq('item_id', this.data.itemId)
-      .eq('is_deleted', false)
-      .order('expiry_date', { ascending: true })
-      .limit(200)
-    let batchesFailed = !!batchError
-    // V2 Step2：位置字典（批次行显示位置名 + 新增批次选择器）
-    const locRes = await cloud.database
-      .from('locations')
-      .select('id, name')
-      .eq('household_id', row.household_id)
-      .order('created_at', { ascending: true })
-    if (locRes.error) batchesFailed = true
-    const locations = locRes.data || []
+    this.itemSnapshot = row
+    const [batchRes, locRes] = await Promise.all([
+      cloud.database.from('batches')
+        .select('id, item_id, expiry_date, opened_at, quantity, unit, status, location_id')
+        .eq('household_id', row.household_id).eq('item_id', row.id).eq('is_deleted', false)
+        .order('expiry_date', { ascending: true }).order('id', { ascending: true }).limit(201),
+      cloud.database.from('locations').select('id, name').eq('household_id', row.household_id).order('name', { ascending: true }),
+    ])
+    const batchesFailed = !!(batchRes.error || locRes.error || !Array.isArray(batchRes.data) || !Array.isArray(locRes.data))
+    const batchRows = Array.isArray(batchRes.data) ? batchRes.data : []
+    const locations = Array.isArray(locRes.data) ? locRes.data : []
     const locMap = {}
     locations.forEach(function (l) {
       locMap[l.id] = l.name
     })
-    const all = this.decorateBatches(batchRows || [], row.category, row.pao_days, locMap)
+    const all = this.decorateBatches(batchRows.slice(0, 200), row.category, row.pao_days, locMap)
     const activeBatches = all.filter(function (b) { return b.status === 'active' })
     const historyBatches = all.filter(function (b) { return b.status !== 'active' })
     this.setData({
@@ -145,18 +144,19 @@ Page({
       loadState: 'ready',
       batchState: batchesFailed ? 'error' : 'ready',
       batchError: batchesFailed ? '批次信息暂时无法加载，请重试' : '',
+      batchesLimited: batchRows.length > 200,
       item: {
         id: row.id,
         household_id: row.household_id,
         name: row.name,
         category: row.category,
         categoryLabel: categoryLabel(row.category),
-        categoryIllu: categoryIllustration(row.category),
         itemIllu: itemIllustration(row.name, row.category),
         unit: row.unit || '',
         brand: row.brand || '',
         spec: row.spec || '',
         lowStockThreshold: row.low_stock_threshold == null ? '0' : String(row.low_stock_threshold),
+        paoDays: row.pao_days > 0 ? String(row.pao_days) : '',
       },
       activeBatches: activeBatches,
       historyBatches: historyBatches,
@@ -184,13 +184,19 @@ Page({
     }
     const links = linkRes.data || []
     let hits = []
-    const { data: session } = await cloud.auth.getSession()
+    const { data: session, error } = await getApp().ensureSession()
     const uid = session && session.user && session.user.id
+    if (error || !uid) {
+      this.setData({ allergyState: 'error', allergyError: '登录信息暂不可用，无法核对档案匹配' })
+      return
+    }
     if (uid) {
       const memberRes = await cloud.database
         .from('members')
         .select('id')
+        .eq('household_id', hid)
         .eq('owner_id', uid)
+        .is('left_at', null)
         .limit(1)
       if (memberRes.error) {
         this.setData({ allergyState: 'error', allergyError: '成员信息加载失败，冲突判断暂不可用' })
@@ -321,7 +327,9 @@ Page({
     const that = this
     wx.showModal({
       title: '标记开封',
-      content: '标记后临期分级将按开封后有效期计算',
+      content: this.data.item.paoDays
+        ? '按物品设置的 ' + this.data.item.paoDays + ' 天计算开封到期日，库存采用较早的到期日。'
+        : '将记录开封时间。当前物品未设置开封后有效期，仍按原批次到期日提醒。',
       success(res) {
         if (res.confirm) that.doMarkOpened(id)
       },
@@ -329,26 +337,7 @@ Page({
   },
 
   async doMarkOpened(id) {
-    if (this.data.batchBusy) return
-    this.setData({ batchBusy: true })
-    const res = await batchesAccess.update(id, { opened_at: new Date().toISOString() })
-    this.setData({ batchBusy: false })
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '操作失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已标记开封', icon: 'success' })
-    // V2 Step4：开封流水（静默，失败不阻塞）
-    const item = this.data.item
-    const batch = this.findBatchById(id)
-    logRecord({
-      householdId: item ? item.household_id : null,
-      batchId: id,
-      action: 'open',
-      quantity: batch ? batch.quantity : null,
-      note: item ? item.name : null,
-    })
-    this.loadAll()
+    await this.updateActiveBatch(id, 'open', { opened_at: new Date().toISOString() })
   },
 
   // 批次的展示态查找（流水需要 quantity 快照；dataset id 为字符串，统一字符串比较）
@@ -454,6 +443,7 @@ Page({
 
   startEdit() {
     const item = this.data.item
+    this.itemEditSnapshot = this.itemSnapshot
     let idx = 0
     for (let i = 0; i < CATEGORIES.length; i++) {
       if (CATEGORIES[i].value === item.category) {
@@ -469,6 +459,7 @@ Page({
       editBrand: item.brand,
       editSpec: item.spec,
       editLowStockThreshold: item.lowStockThreshold,
+      editPaoDays: item.paoDays,
     })
   },
 
@@ -481,20 +472,29 @@ Page({
   onEditBrand(e) { this.setData({ editBrand: e.detail.value }) },
   onEditSpec(e) { this.setData({ editSpec: e.detail.value }) },
   onEditLowStockThreshold(e) { this.setData({ editLowStockThreshold: e.detail.value }) },
+  onEditPaoDays(e) { this.setData({ editPaoDays: e.detail.value }) },
   onEditCategory(e) { this.setData({ editCategoryIndex: Number(e.detail.value) || 0 }) },
 
   async saveEdit() {
+    if (this.data.stockDeleting) return
     const name = (this.data.editName || '').trim()
     if (!name) {
       wx.showToast({ title: '请填写物品名称', icon: 'none' })
       return
     }
-    const lowStockThreshold = parseLowStockThreshold(this.data.editLowStockThreshold)
+    const lowStockThreshold = parseOptionalDaysOrCount(this.data.editLowStockThreshold, 999)
     if (lowStockThreshold == null) {
       wx.showToast({ title: '低库存提醒请填 0–999 的整数', icon: 'none' })
       return
     }
+    const paoDays = parseOptionalDaysOrCount(this.data.editPaoDays, 3650)
+    if (paoDays == null) {
+      wx.showToast({ title: '开封后有效期请填 1–3650 天，留空关闭', icon: 'none' })
+      return
+    }
     if (this.data.editSaving) return
+    const original = this.itemEditSnapshot
+    if (!original) return
     this.setData({ editSaving: true })
     const category = CATEGORIES[this.data.editCategoryIndex] || CATEGORIES[0]
     const res = await itemsAccess.update(this.data.itemId, {
@@ -504,9 +504,30 @@ Page({
       brand: (this.data.editBrand || '').trim(),
       spec: (this.data.editSpec || '').trim(),
       low_stock_threshold: lowStockThreshold,
+      pao_days: paoDays,
+    }, {
+      household_id: original.household_id,
+      is_deleted: false,
+      name: original.name,
+      category: original.category,
+      unit: original.unit,
+      brand: original.brand,
+      spec: original.spec,
+      low_stock_threshold: original.low_stock_threshold,
+      pao_days: original.pao_days,
     })
     this.setData({ editSaving: false })
     if (res.error || !res.data) {
+      if (res.error && res.error.code === '23514' && res.error.message === 'medication_item_in_use') {
+        wx.showToast({ title: '请先取消该药品的用药计划', icon: 'none' })
+        return
+      }
+      if (res.error && res.error.code === 'NOT_FOUND_OR_FORBIDDEN') {
+        this.setData({ editing: false })
+        wx.showToast({ title: '物品已有变化，正在刷新', icon: 'none' })
+        this.loadAll()
+        return
+      }
       wx.showToast({ title: (res.error && res.error.message) || '保存失败', icon: 'none' })
       return
     }
@@ -522,6 +543,7 @@ Page({
   },
 
   async saveNewBatch() {
+    if (this.data.stockDeleting || this.data.batchState !== 'ready') return
     const item = this.data.item
     if (!item) return
     const bf = this.selectComponent('#addBatchForm')
@@ -581,40 +603,39 @@ Page({
   },
 
   async applyBatchStatus(id, status) {
-    if (this.data.batchBusy) return
-    this.setData({ batchBusy: true })
-    const res = await batchesAccess.update(id, { status: status })
-    this.setData({ batchBusy: false })
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '操作失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已更新', icon: 'success' })
-    // V2 Step4：用完/报废流水（静默，失败不阻塞）
+    if (status !== 'used' && status !== 'discarded') return
+    await this.updateActiveBatch(id, status === 'used' ? 'use_up' : 'discard', { status })
+  },
+
+  async updateActiveBatch(id, action, patch) {
     const item = this.data.item
-    const batch = this.findBatchById(id)
-    logRecord({
-      householdId: item ? item.household_id : null,
-      batchId: id,
-      action: status === 'used' ? 'use_up' : 'discard',
-      quantity: batch ? batch.quantity : null,
-      note: item ? item.name : null,
-    })
-    this.loadAll()
+    if (!id || !item || this.data.batchBusy || this.data.stockDeleting || this.data.editBatchSaving) return
+    this.setData({ batchBusy: true })
+    try {
+      const expected = { item_id: item.id, household_id: item.household_id, is_deleted: false, status: 'active' }
+      if (action === 'open') expected.opened_at = null
+      const { data, error } = await batchesAccess.update(id, patch, expected)
+      const updated = !error && data
+      if (!updated) {
+        wx.showToast({ title: '批次状态待确认，正在刷新', icon: 'none' })
+      } else {
+        wx.showToast({ title: action === 'open' ? '已标记开封' : '已更新', icon: 'success' })
+        logRecord({ householdId: item.household_id, batchId: updated.id, action, quantity: updated.quantity, note: item.name })
+      }
+      await this.loadAll()
+    } catch (error) {
+      wx.showToast({ title: '批次状态待确认，正在刷新', icon: 'none' })
+      await this.loadAll()
+    } finally {
+      this.setData({ batchBusy: false })
+    }
   },
 
   // ===== 批次编辑 / 删除（点批次行出操作菜单） =====
 
   onBatchTap(e) {
     const id = e.currentTarget.dataset.id
-    const all = this.data.activeBatches.concat(this.data.historyBatches)
-    let batch = null
-    for (let i = 0; i < all.length; i++) {
-      if (all[i].id === id) {
-        batch = all[i]
-        break
-      }
-    }
+    const batch = this.findBatchById(id)
     if (!batch) return
     const that = this
     wx.showActionSheet({
@@ -627,6 +648,7 @@ Page({
   },
 
   startBatchEdit(batch) {
+    this.batchEditSnapshot = batch
     this.setData({
       editingBatchId: batch.id,
       editingExpiry: batch.expiry_date,
@@ -644,8 +666,11 @@ Page({
   onEditBatchUnit(e) { this.setData({ editingUnit: e.detail.value }) },
 
   async saveBatchEdit() {
+    if (this.data.stockDeleting || this.data.batchBusy) return
     const id = this.data.editingBatchId
-    if (!id) return
+    const original = this.batchEditSnapshot
+    const item = this.data.item
+    if (!id || !original || !item) return
     if (!this.data.editingExpiry) {
       wx.showToast({ title: '请选择到期日', icon: 'none' })
       return
@@ -666,9 +691,23 @@ Page({
       expiry_date: this.data.editingExpiry,
       quantity: qty,
       unit: unit,
+    }, {
+      item_id: item.id,
+      household_id: item.household_id,
+      is_deleted: false,
+      status: original.status,
+      expiry_date: original.expiry_date,
+      quantity: original.quantity,
+      unit: original.unit,
     })
     this.setData({ editBatchSaving: false })
     if (res.error || !res.data) {
+      if (res.error && res.error.code === 'NOT_FOUND_OR_FORBIDDEN') {
+        this.setData({ editingBatchId: null })
+        wx.showToast({ title: '批次已有变化，正在刷新', icon: 'none' })
+        this.loadAll()
+        return
+      }
       wx.showToast({ title: (res.error && res.error.message) || '保存失败', icon: 'none' })
       return
     }
@@ -691,57 +730,46 @@ Page({
   },
 
   async deleteBatch(id) {
-    if (this.data.batchBusy) return
-    this.setData({ batchBusy: true })
-    // 契约 v2.0：软删除——移入回收站，可恢复
-    const res = await batchesAccess.update(id, { is_deleted: true, deleted_at: new Date().toISOString() })
-    this.setData({ batchBusy: false })
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已移入回收站', icon: 'success' })
-    this.loadAll()
+    await this.moveToTrash({ p_item_id: null, p_batch_id: id, p_deleted: true })
   },
 
-  // ===== 删除物品（软删，契约 v2.0） =====
-  // 批次与物品分开处理（客户端级联）：先软删批次，任何一条失败即中止，避免半成品
-
   deleteItem() {
-    const that = this
-    const count = this.data.activeBatches.length + this.data.historyBatches.length
+    if (this.data.stockDeleting) return
     wx.showModal({
       title: '移入回收站',
-      content: count > 0
-        ? '将同时移入回收站：该物品的 ' + count + ' 条批次记录（可在「回收站」恢复）'
-        : '可在「回收站」恢复',
+      content: '物品及其全部未删除批次将同时移入回收站，可从回收站恢复。',
       confirmColor: '#A32D2D',
-      success(res) {
-        if (!res.confirm) return
-        that.removeItemCascade()
+      success: (res) => {
+        if (res.confirm) this.moveToTrash({ p_item_id: this.data.itemId, p_batch_id: null, p_deleted: true })
       },
     })
   },
 
-  async removeItemCascade() {
-    wx.showLoading({ title: '处理中', mask: true })
-    const ids = this.data.activeBatches.concat(this.data.historyBatches).map(function (b) { return b.id })
-    const now = new Date().toISOString()
-    for (let i = 0; i < ids.length; i++) {
-      const res = await batchesAccess.update(ids[i], { is_deleted: true, deleted_at: now })
-      if (res.error || !res.data) {
-        wx.hideLoading()
-        wx.showToast({ title: '批次移入回收站失败，已中止', icon: 'none' })
+  async moveToTrash(args) {
+    if (this.data.stockDeleting || this.data.batchBusy || this.data.addSaving || this.data.editBatchSaving || this.data.editSaving) return
+    this.setData({ stockDeleting: true })
+    try {
+      const { data, error } = await cloud.database.rpc('set_stock_deleted', args)
+      if (!error && data === 'referenced') {
+        wx.showToast({ title: '请先取消该药品的用药计划', icon: 'none' })
         return
       }
+      if (error || data !== 'ok') {
+        wx.showToast({ title: '回收站状态待确认，正在刷新', icon: 'none' })
+        await this.loadAll()
+        return
+      }
+      wx.showToast({ title: '已移入回收站', icon: 'success' })
+      if (args.p_item_id) {
+        wx.navigateBack({ fail: () => wx.switchTab({ url: '/pages/inventory/inventory' }) })
+      } else {
+        await this.loadAll()
+      }
+    } catch (error) {
+      wx.showToast({ title: '回收站状态待确认，正在刷新', icon: 'none' })
+      await this.loadAll()
+    } finally {
+      this.setData({ stockDeleting: false })
     }
-    const res = await itemsAccess.update(this.data.itemId, { is_deleted: true, deleted_at: now })
-    wx.hideLoading()
-    if (res.error || !res.data) {
-      wx.showToast({ title: (res.error && res.error.message) || '删除失败', icon: 'none' })
-      return
-    }
-    wx.showToast({ title: '已移入回收站', icon: 'success' })
-    setTimeout(function () { wx.navigateBack() }, 600)
   },
 })

@@ -41,6 +41,40 @@
         "type": "folder"
       },
       {
+        "value": "scripts",
+        "type": "folder"
+      },
+      {
+        "value": "assets-preview",
+        "type": "folder"
+      },
+      { "value": "assets/illustrations/v3/products/milk.png", "type": "file" },
+      { "value": "assets/illustrations/v3/products/yogurt.png", "type": "file" },
+      { "value": "assets/illustrations/v3/products/egg.png", "type": "file" },
+      { "value": "assets/illustrations/v3/products/bread.png", "type": "file" },
+      { "value": "assets/illustrations/v3/products/tissue.png", "type": "file" },
+      { "value": "assets/illustrations/v3/products/medicine.png", "type": "file" },
+      {
+        "value": "assets/illustrations/v2",
+        "type": "folder"
+      },
+      {
+        "value": "assets/illustrations/v3-ref",
+        "type": "folder"
+      },
+      {
+        "value": "assets/illustrations/v3/mascot/xiaomi-avatar.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/illustrations/v3/mascot/xiaomi-standard.png",
+        "type": "file"
+      },
+      {
+        "value": "assets/illustrations/v3/scenes/empty-basket.png",
+        "type": "file"
+      },
+      {
         "value": "package-lock.json",
         "type": "file"
       },

@@ -1,52 +1,45 @@
-/* 存放位置管理页；公共类已收编至 app.wxss */
-
-.hint-sm {
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
-  padding: 12rpx 0;
-  text-align: center;
+.location-page { padding: 8rpx 8rpx 40rpx; }
+.location-create { padding: var(--space-3); }
+.location-heading {
+  margin: 20rpx 32rpx 8rpx;
+  color: var(--color-text-2);
+  font-size: var(--font-md);
+  font-weight: 600;
 }
+.location-list { padding: 0 var(--space-3); }
+
 .location-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  min-height: 136rpx;
-  padding: 12rpx 0 20rpx;
-  color: var(--color-text-3);
-  font-size: var(--font-xs);
+  min-height: 140rpx;
+  color: var(--color-text-2);
+  font-size: var(--font-sm);
   line-height: 1.45;
   text-align: center;
 }
-.location-mascot { width: 112rpx; height: 112rpx; flex-shrink: 0; }
+.location-illustration { width: 112rpx; height: 112rpx; flex-shrink: 0; }
 
-.loc-row {
+.loc-row,
+.location-add-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) 0;
-  border-top: 1rpx solid var(--color-border);
+  gap: 12rpx;
 }
-
-.loc-row:first-child {
-  border-top: none;
-}
-
+.loc-row { padding: 12rpx 0; min-height: 104rpx; }
+.loc-row + .loc-row { border-top: 1rpx solid var(--color-border); }
 .loc-name {
   font-size: var(--font-md);
   font-weight: 500;
   line-height: 1.4;
   flex: 1;
   min-width: 0;
+  overflow-wrap: break-word;
 }
-
-.loc-actions {
-  display: flex;
-  gap: 12rpx;
-  flex-shrink: 0;
-}
-
-.loc-rename-input {
-  min-width: 0;
-}
+.loc-actions { display: flex; gap: 12rpx; flex-shrink: 0; }
+.loc-rename-input, .location-add-row .ipt { min-width: 0; }
+.location-retry { margin-top: 16rpx; }
+.large-text .location-empty, .large-text .location-heading { font-size: 30rpx; }
+.large-text .loc-row { flex-wrap: wrap; }

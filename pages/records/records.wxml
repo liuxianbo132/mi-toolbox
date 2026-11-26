@@ -1,12 +1,13 @@
 <view class="page-root {{largeText ? 'large-text' : ''}}">
-<view wx:if="{{authState === 'checking'}}" class="center">加载中…</view>
+<view wx:if="{{authState === 'checking'}}" class="center">正在读取家庭信息…</view>
 
 <view wx:elif="{{authState === 'signed-out'}}" class="card login-card">
-  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onWechatLogin">微信一键登录</button>
+  <button class="btn-primary login-btn" loading="{{loginLoading}}" disabled="{{loginLoading}}" bindtap="onwechatlogin">微信一键登录</button>
   <text wx:if="{{loginError}}" class="err">{{loginError}}</text>
 </view>
 
-<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在「临期看板」创建或加入家庭</view>
+<view wx:elif="{{authState === 'no-household'}}" class="card center-hint">请先在首页创建或加入家庭</view>
+<state-view wx:elif="{{authState === 'error'}}" title="暂时无法读取操作记录" desc="{{pageError}}" action-text="重试" bindaction="retryrecords" />
 
 <view wx:else>
   <view wx:if="{{summary}}" class="card summary-card">
@@ -37,25 +38,40 @@
       <text class="ratio-value">{{summary.rateText}}</text>
     </view>
     <view class="summary-hint">{{summary.wasteText}}{{summary.capped ? '（已达 1000 条统计上限）' : ''}}</view>
-    <view wx:if="{{filter !== 'all'}}" class="filter-note">上方概览为全量统计，不随筛选变化</view>
+    <view wx:if="{{filter !== 'all'}}" class="filter-note">本月概览涵盖全部操作类型</view>
+  </view>
+  <view wx:elif="{{summaryState === 'loading'}}" class="card hint-sm">正在汇总本月记录…</view>
+  <view wx:elif="{{summaryState === 'error'}}" class="card state-inline">
+    <text>本月概览暂时不可用</text>
+    <button size="mini" class="btn-ghost" bindtap="retryrecords">重试</button>
   </view>
 
-  <view class="card">
-    <view class="card-title">操作记录（{{records.length}}）</view>
+  <view class="records-list">
+    <view class="card-title">操作记录</view>
     <view class="rec-filters">
-      <view wx:for="{{filters}}" wx:for-item="f" wx:key="key" class="rec-chip {{filter === f.key ? 'rec-chip-active' : ''}}" hover-class="row-hover" data-key="{{f.key}}" bindtap="onfilter" aria-label="筛选{{f.label}}记录">{{f.label}}</view>
+      <button wx:for="{{filters}}" wx:for-item="f" wx:key="key" class="rec-chip {{filter === f.key ? 'rec-chip-active' : ''}}" hover-class="row-hover" data-key="{{f.key}}" bindtap="onfilter" aria-label="筛选{{f.label}}记录">{{f.label}}</button>
     </view>
-    <view wx:for="{{records}}" wx:for-item="r" wx:key="id" class="rec-row">
-      <view class="rec-main">
-        <view class="rec-title">
-          <text class="rec-action {{r.actionClass}}">{{r.actionLabel}}</text>
-          <text class="rec-item">{{r.itemName}}</text>
+    <view wx:if="{{recordsState === 'loading'}}" class="hint-sm">正在读取记录…</view>
+    <state-view wx:elif="{{recordsState === 'error'}}" title="操作记录加载失败" action-text="重试" bindaction="retryrecords" compact />
+    <block wx:else>
+      <view wx:if="{{recordsLimited}}" class="list-note">显示最近 100 条操作记录</view>
+      <view wx:for="{{recordGroups}}" wx:for-item="g" wx:key="day" class="record-group">
+        <view class="record-date">{{g.day}}</view>
+        <view class="record-rows">
+          <view wx:for="{{g.rows}}" wx:for-item="r" wx:key="id" class="rec-row">
+            <view class="rec-main">
+              <view class="rec-title">
+                <text class="rec-action {{r.actionClass}}">{{r.actionLabel}}</text>
+                <text class="rec-item">{{r.itemName}}</text>
+              </view>
+              <view class="rec-meta">{{r.ownerName}}<text wx:if="{{r.qtyText}}"> · 数量 {{r.qtyText}}</text></view>
+            </view>
+            <view wx:if="{{r.timeText}}" class="rec-time">{{r.timeText}}</view>
+          </view>
         </view>
-        <view class="rec-meta">{{r.ownerName}}<text wx:if="{{r.qtyText}}"> · 数量 {{r.qtyText}}</text></view>
       </view>
-      <view class="rec-time">{{r.timeText}}</view>
-    </view>
-    <view wx:if="{{records.length === 0}}" class="hint-sm">{{filter === 'all' ? '暂无操作记录' : '该动作暂无记录'}}</view>
+      <view wx:if="{{recordGroups.length === 0}}" class="hint-sm">{{filter === 'all' ? '暂无操作记录' : '近期没有这类操作'}}</view>
+    </block>
   </view>
 </view>
 </view>

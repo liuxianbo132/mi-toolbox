@@ -1,21 +1,22 @@
 const { cloud } = require('../../utils/cloud')
-const { itemsAccess, batchesAccess, logRecord } = require('../../utils/data-access')
 const { CATEGORIES, categoryIllustration } = require('../../utils/constants')
 const { askExpirySubscribe } = require('../../utils/subscribe')
 const { recognizeFromImage } = require('../../utils/vision')
+const { parseOptionalDaysOrCount } = require('../../utils/inventory-fields')
+const { makeRequestId } = require('../../utils/request-id')
 
-function parseLowStockThreshold(value) {
-  const raw = String(value == null ? '' : value).trim()
-  if (!raw) return 0
-  if (!/^\d+$/.test(raw)) return null
-  const n = Number(raw)
-  return n >= 0 && n <= 999 ? n : null
+const SAVE_ERRORS = {
+  invalid_stock: '请核对物品资料和首个批次的数量、单位、日期。',
+  invalid_location: '存放位置已有变化，请重新选定后保存。',
+  invalid_household: '家庭已变化，请返回库存重新录入。',
+  not_signed_in: '请登录后重新录入。',
 }
 
 Page({
   data: {
     largeText: false,
-    authState: 'checking', // checking | signed-out | no-household | ready
+    authState: 'checking', // checking | signed-out | no-household | error | ready
+    loadError: '',
     loginError: '',
     loginLoading: false,
     householdId: null,
@@ -28,9 +29,15 @@ Page({
     brand: '',
     spec: '',
     lowStockThreshold: '',
+    paoDays: '',
     saving: false,
+    saveComplete: false,
+    saveError: '',
+    saveUnknown: false,
+    saveConflict: false,
     // V2 Step2：可选存放位置
     locations: [],
+    locationsError: false,
     // V2 Step3：扫码未命中跳转时预填的条码
     barcode: '',
     // 视觉录入进行中
@@ -43,22 +50,45 @@ Page({
 
   onLoad(options) {
     if (options && options.barcode) {
-      this.setData({ barcode: decodeURIComponent(options.barcode) })
+      let barcode = options.barcode
+      try { barcode = decodeURIComponent(barcode) } catch (e) { /* 条码本身可以含 %. */ }
+      this.setData({ barcode })
     }
     this.restore()
   },
 
+  onUnload() {
+    this.unloaded = true
+    clearTimeout(this.backTimer)
+  },
+
   async restore() {
-    this.setData({ authState: 'checking' })
+    this.setData({ authState: 'checking', loadError: '' })
     try {
-      const { data: session, error } = await getApp().ensureSession()
-      if (error || !session) {
+      const app = getApp()
+      const { data: session, error } = await app.ensureSession()
+      if (error) throw error
+      const uid = session && session.user && session.user.id
+      if (!uid) {
         this.setData({ authState: 'signed-out' })
         return
       }
-      await this.loadHousehold()
+      const sessionVersion = app.sessionVersion
+      const { data: mine, error: memberError } = await cloud.database
+        .from('members').select('household_id').eq('owner_id', uid).is('left_at', null).limit(1)
+      if (memberError) throw memberError
+      if (sessionVersion !== app.sessionVersion) return this.restore()
+      if (!Array.isArray(mine) || (mine[0] && !mine[0].household_id)) throw new Error('家庭信息不完整')
+      if (!mine.length) {
+        this.setData({ authState: 'no-household' })
+        return
+      }
+      const householdId = mine[0].household_id
+      this.loadedSessionVersion = sessionVersion
+      this.setData({ householdId, authState: 'ready' })
+      await this.loadLocations(householdId)
     } catch (e) {
-      this.setData({ authState: 'signed-out' })
+      this.setData({ authState: 'error', loadError: '家庭信息暂时无法加载，请检查网络后重试' })
     }
   },
 
@@ -73,41 +103,18 @@ Page({
     this.restore()
   },
 
-  async loadHousehold() {
-    const { data: session } = await cloud.auth.getSession()
-    const uid = session && session.user && session.user.id
-    if (!uid) {
-      this.setData({ authState: 'signed-out' })
-      return
+  async loadLocations(hid) {
+    try {
+      const { data, error } = await cloud.database
+        .from('locations').select('id, name').eq('household_id', hid).order('name', { ascending: true })
+      if (error || !Array.isArray(data)) throw error || new Error('存放位置响应不完整')
+      this.setData({ locations: data, locationsError: false })
+    } catch (error) {
+      this.setData({ locationsError: true })
     }
-    const { data: mine, error } = await cloud.database
-      .from('members')
-      .select('household_id')
-      .eq('owner_id', uid)
-      .limit(1)
-    if (error) {
-      wx.showToast({ title: error.message, icon: 'none' })
-      this.setData({ authState: 'no-household' })
-      return
-    }
-    const row = mine && mine[0]
-    if (!row) {
-      this.setData({ authState: 'no-household' })
-      return
-    }
-    this.setData({ householdId: row.household_id, authState: 'ready' })
-    this.loadLocations(row.household_id)
   },
 
-  // V2 Step2：位置字典（批次表单选择器用；无位置时选择器只有「未指定」）
-  async loadLocations(hid) {
-    const { data } = await cloud.database
-      .from('locations')
-      .select('id, name')
-      .eq('household_id', hid)
-      .order('created_at', { ascending: true })
-    this.setData({ locations: data || [] })
-  },
+  retryLocations() { return this.loadLocations(this.data.householdId) },
 
   onNameInput(e) {
     this.setData({ name: e.detail.value })
@@ -129,13 +136,17 @@ Page({
     this.setData({ lowStockThreshold: e.detail.value })
   },
 
+  onPaoDaysInput(e) { this.setData({ paoDays: e.detail.value }) },
+
+  onBarcodeInput(e) { this.setData({ barcode: e.detail.value }) },
+
   onCategoryChange(e) {
     this.setData({ categoryIndex: Number(e.detail.value) || 0 })
   },
 
   // 视觉录入：拍照/相册 → 云服务视觉模型 → 回填名称/品类/批次（失败保留手动输入）
   async onRecognize() {
-    if (this.data.recognizing) return
+    if (this.data.recognizing || this.data.saving || this.data.saveUnknown || this.data.saveComplete) return
     this.setData({ recognizing: true })
     wx.showLoading({ title: '识别中…', mask: true })
     const res = await recognizeFromImage()
@@ -165,86 +176,98 @@ Page({
     wx.showToast({ title: got ? '已识别，请核对' : '未识别到信息，请手动填写', icon: 'none' })
   },
 
-  // 保存：先建物品，再挂首批批次（契约：batches.item_id 关联 items）
-  async onSaveTap() {
+  readSavePayload() {
     const name = (this.data.name || '').trim()
-    if (!name) {
-      wx.showToast({ title: '请填写物品名称', icon: 'none' })
-      return
-    }
-    if (!this.data.householdId) {
-      wx.showToast({ title: '请先创建或加入家庭', icon: 'none' })
-      return
-    }
-    const lowStockThreshold = parseLowStockThreshold(this.data.lowStockThreshold)
-    if (lowStockThreshold == null) {
-      wx.showToast({ title: '低库存提醒请填 0–999 的整数', icon: 'none' })
-      return
-    }
+    if (!name) return { error: '请填写物品名称' }
+    if (!this.data.householdId) return { error: '请先创建或加入家庭' }
+    const lowStockThreshold = parseOptionalDaysOrCount(this.data.lowStockThreshold, 999)
+    if (lowStockThreshold == null) return { error: '低库存提醒请填 0–999 的整数' }
+    const paoDays = parseOptionalDaysOrCount(this.data.paoDays, 3650)
+    if (paoDays == null) return { error: '开封后有效期请填 1–3650 天，留空关闭' }
     const bf = this.selectComponent('#batchForm')
     const res = bf ? bf.getValues() : null
-    if (!res || res.error) {
-      wx.showToast({ title: (res && res.error) || '批次信息不完整', icon: 'none' })
-      return
-    }
-    if (this.data.saving) return
-    this.setData({ saving: true })
-
+    if (!res || res.error || !res.data) return { error: (res && res.error) || '批次信息不完整' }
     const category = CATEGORIES[this.data.categoryIndex] || CATEGORIES[0]
-    const created = await itemsAccess.create({
-      household_id: this.data.householdId,
-      name: name,
-      category: category.value,
-      unit: (this.data.unit || '').trim(),
-      brand: (this.data.brand || '').trim(),
-      spec: (this.data.spec || '').trim(),
-      barcode: this.data.barcode || null,
-      low_stock_threshold: lowStockThreshold,
-    })
-    if (created.error || !created.data) {
-      this.setData({ saving: false })
-      wx.showToast({ title: (created.error && created.error.message) || '保存失败', icon: 'none' })
+    return {
+      p_item: {
+        household_id: this.data.householdId,
+        name,
+        category: category.value,
+        unit: (this.data.unit || '').trim(),
+        brand: (this.data.brand || '').trim(),
+        spec: (this.data.spec || '').trim(),
+        barcode: this.data.barcode.trim() || null,
+        low_stock_threshold: lowStockThreshold,
+        pao_days: paoDays,
+      },
+      p_first_batch: { ...res.data, status: 'active' },
+    }
+  },
+
+  async onSaveTap() {
+    if (this.data.authState !== 'ready' || this.data.saving || this.data.recognizing || this.data.saveComplete || this.data.saveConflict) return
+    const app = getApp()
+    if (this.loadedSessionVersion !== app.sessionVersion) {
+      if (this.pendingSave) {
+        this.setData({ saveConflict: true, saveError: '登录状态已变化，请先前往库存核对这次录入。' })
+      } else {
+        await this.restore()
+      }
       return
     }
-
-    // v1.9：批次写入时快照家庭内昵称（未设置则省略该字段）
-    const myNickname = getApp().globalData.myNickname || ''
-    const batchRes = await batchesAccess.create({
-      household_id: this.data.householdId,
-      item_id: created.data.id,
-      expiry_date: res.data.expiry_date,
-      production_date: res.data.production_date,
-      quantity: res.data.quantity,
-      unit: res.data.unit,
-      status: 'active',
-      location_id: res.data.location_id,
-      owner_name: myNickname || undefined,
-    })
-    this.setData({ saving: false })
-
-    if (batchRes.error || !batchRes.data) {
-      // 物品已建成、批次未挂上：明确告知补救路径，不静默吞掉
-      wx.showToast({ title: '物品已保存，批次未保存，可在详情页补充', icon: 'none', duration: 2500 })
-      this.backAfter(2500)
+    const payload = this.pendingSave || this.readSavePayload()
+    if (payload.error) {
+      this.setData({ saveError: payload.error })
       return
     }
+    this.setData({ saving: true, saveError: '' })
+    try {
+      if (!this.pendingSave) {
+        const requestId = await makeRequestId()
+        if (this.unloaded) return
+        if (this.loadedSessionVersion !== app.sessionVersion) {
+          this.setData({ saveError: '登录状态已变化，请重新加载后录入。' })
+          return
+        }
+        this.pendingSave = { ...payload, p_request_id: requestId }
+      }
+      const { error, data } = await cloud.database.rpc('create_stock_atomic', this.pendingSave)
+      if (this.unloaded) return
+      if (error || !data || typeof data.ok !== 'boolean' || (data.ok && (!data.item_id || !data.batch_id))) {
+        throw error || new Error('Unconfirmed stock save')
+      }
+      this.pendingSave = null
+      if (!data.ok) {
+        if (data.error === 'request_conflict') {
+          this.setData({ saveUnknown: true, saveConflict: true, saveError: '本次内容与已有保存记录不同，请先前往库存核对。' })
+          return
+        }
+        this.setData({ saveUnknown: false, saveError: SAVE_ERRORS[data.error] || '物品和批次未保存，请核对后重试。' })
+        if (data.error === 'invalid_location') this.retryLocations()
+        return
+      }
 
-    // 任务5：录入成功后埋一次订阅授权（模板 id 未下发时静默跳过）
-    askExpirySubscribe()
-    // V2 Step4：入库流水（静默，失败不阻塞）
-    logRecord({
-      householdId: this.data.householdId,
-      batchId: batchRes.data.id,
-      action: 'create',
-      quantity: res.data.quantity,
-      note: name,
-    })
-    wx.showToast({ title: '已保存', icon: 'success' })
-    this.backAfter(600)
+      this.setData({ saveUnknown: false, saveComplete: true })
+      askExpirySubscribe()
+      wx.showToast({ title: '已保存', icon: 'success' })
+      this.backAfter(600)
+    } catch (error) {
+      if (this.unloaded) return
+      const saveUnknown = !!this.pendingSave
+      this.setData({ saveUnknown, saveError: saveUnknown
+        ? '本次保存结果暂未确认。重试会核对同一次录入。'
+        : '暂时无法保存，请重试。' })
+    } finally {
+      if (!this.unloaded) this.setData({ saving: false })
+    }
+  },
+
+  checkSaveResult() {
+    wx.switchTab({ url: '/pages/inventory/inventory' })
   },
 
   backAfter(delay) {
-    setTimeout(() => {
+    this.backTimer = setTimeout(() => {
       const pages = getCurrentPages()
       if (pages.length > 1) {
         wx.navigateBack()
